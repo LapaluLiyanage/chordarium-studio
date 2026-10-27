@@ -47,6 +47,7 @@ class Song(BaseModel):
     mode: Mode = "major"
     tempo_bpm: float = Field(default=90, gt=0)
     time_signature: tuple[int, int] = (4, 4)
+    capo: int = Field(default=0, ge=0, le=12)
     language: Literal["en", "si"] = "en"
     sections: list[Section] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
