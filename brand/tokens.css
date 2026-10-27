@@ -1,0 +1,38 @@
+/* Chordarium brand tokens — extracted from LapaluLiyanage/Chordarium client/src/styles.css (:root).
+   Raw values live here ONLY. Studio components use the semantic tokens below. */
+:root {
+  /* raw brand palette (verbatim) */
+  --cream:#fbf5ea; --sand:#efe5d4; --paper:#fffdf8; --ink:#231d17; --ink-soft:#4a4037; --muted:#6f6458;
+  --amber:#f2913d; --blue:#6aa8e0; --purple:#b48be0; --green:#6fbf8b; --coral:#ee8577; --yellow:#f2c14e;
+  --dark:#1f1a16; --dark-2:#2a241e; --dark-line:#3d352d; --on-dark:#f6eee1; --muted-dark:#b9ad9c;
+  --bass:#4fc3c9; --danger-raw:#c2410c;
+  --font-archivo:'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Studio semantic tokens (dark = default; the plugin lives in a dark DAW) */
+  --bg:var(--dark);            --surface:var(--dark-2);     --surface-2:#342c25;   /* #342c25 = Chordarium chord chip bg */
+  --border:var(--dark-line);   --text:var(--on-dark);       --text-muted:var(--muted-dark);
+  --brand:var(--amber);        --brand-2:var(--blue);       --on-brand:var(--ink);
+  --success:var(--green);      --warning:var(--yellow);     --danger:var(--coral);
+  --focus:var(--blue);         --glow:0 0 0 3px color-mix(in srgb, var(--amber) 35%, transparent);
+  /* part lane colours: reuse existing section/instrument hues */
+  --role-piano:var(--amber);   --role-bass:var(--bass);     --role-pad:var(--purple);  --role-drums:var(--coral);
+  /* song-section colours (identical to Chordarium sections.ts) */
+  --sec-intro:var(--yellow); --sec-verse:var(--blue); --sec-chorus:var(--amber);
+  --sec-bridge:var(--purple); --sec-interlude:var(--coral); --sec-outro:var(--green); --sec-other:#b9ad9c;
+  /* type */
+  --font-ui:var(--font-archivo); --font-display:var(--font-archivo); --font-chord:var(--font-archivo);
+  --font-sinhala:'Noto Sans Sinhala', var(--font-archivo);
+  /* shape (from Chordarium) */
+  --radius-pill:999px; --radius-card:22px; --radius-chip:10px; --radius-cell:14px;
+}
+/* Optional light theme = Chordarium's native look */
+:root[data-theme='light'] {
+  --bg:var(--cream); --surface:var(--paper); --surface-2:var(--sand); --border:var(--ink);
+  --text:var(--ink); --text-muted:var(--muted); --on-brand:var(--ink); --danger:var(--danger-raw);
+}
+@font-face{font-family:'Archivo';font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url('./fonts/archivo-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Archivo';font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url('./fonts/archivo-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+/* Signature chord/wordmark style: condensed black caps */
+.cs,.mega,.wordmark{font-weight:900;font-stretch:62%;font-variation-settings:'wdth' 62;}

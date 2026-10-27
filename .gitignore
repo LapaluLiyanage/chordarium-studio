@@ -1,0 +1,14 @@
+.env*
+*.key
+token
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage
+node_modules/
+dist/
+build/
+*.egg-info/
+.vs/
+out/
