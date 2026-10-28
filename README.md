@@ -6,4 +6,4 @@ The AI plans; deterministic rules write the notes.
 
 See `CLAUDE.md` for the full build specification and `CHORDARIUM_STUDIO_UI.md` for the UI spec.
 
-Status: M1 (engine) in progress.
+Status: M1 (engine) — code complete, awaiting sample chord sheets and a listening check.
