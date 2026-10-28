@@ -1,0 +1,8 @@
+Key: C
+Tempo: 60
+Time: 6/8
+[Verse]
+[C]Silent night, [C]holy night
+[G7]All is calm, [C]all is bright
+[F]Round yon virgin [C]mother and child
+[F]Holy infant so [C]tender and mild

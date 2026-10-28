@@ -1,0 +1,7 @@
+Key: D
+Tempo: 100
+[Chorus 1]
+| D | D | A | D |
+| D | A | A7 | D |
+[Bridge]
+| Bm | F#m | G | A |

@@ -1,0 +1,10 @@
+Key: Am
+Tempo: 80
+Time: 6/8
+Intro:
+| Am | C | G | Em |
+Verse
+Am        C
+Alas my love you do me wrong
+G         Em
+To cast me off discourteously

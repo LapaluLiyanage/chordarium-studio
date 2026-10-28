@@ -1,0 +1,9 @@
+Key: G
+Tempo: 72
+Time: 3/4
+[Verse]
+| G | G7 | C | G |
+| G | Em | D | D |
+[Chorus]
+| G | G7 | C | G |
+| G D | Em | D | G |
