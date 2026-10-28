@@ -1,0 +1,32 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  python:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -e engine[dev] -e core[dev] -e mcp[dev]
+      - run: pytest engine/tests --cov=chordarium_engine --cov-fail-under=90 -q
+      - run: pytest core/tests mcp/tests -q
+  ui:
+    runs-on: windows-latest
+    defaults: { run: { working-directory: ui } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm, cache-dependency-path: ui/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+  plugin:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S plugin -B plugin/build -G "Visual Studio 17 2022" -A x64
+      - run: cmake --build plugin/build --config Release
