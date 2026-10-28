@@ -10,13 +10,15 @@ void ChordariumProcessor::processBlock(juce::AudioBuffer<float>& audio, juce::Mi
     audio.clear();
     scratch_.clear();
     const double blockQ = audio.getNumSamples() / (sampleRate_ * 60.0 / freeBpm_);
-    if (auto* ph = getPlayHead())
+    if (syncHost_) if (auto* ph = getPlayHead())
         if (auto pos = ph->getPosition(); pos && pos->getIsPlaying() && pos->getPpqPosition()) {
             // synced mode [TODO M4]: offset by the user's section start bar
-            playback_.scheduleBlock(*pos->getPpqPosition(), blockQ, pos->getBpm().orFallback(freeBpm_), sampleRate_, false, scratch_);
+            playback_.scheduleBlock(*pos->getPpqPosition(), blockQ, pos->getBpm().orFallback(freeBpm_), sampleRate_, false, scratch_), lastBpm_ = pos->getBpm().orFallback(freeBpm_);
         }
-    if (playing_.load()) { playback_.scheduleBlock(freeQ_, blockQ, freeBpm_, sampleRate_, true, scratch_); freeQ_ += blockQ; }
+    if (playing_.load()) { playback_.scheduleBlock(freeQ_, blockQ, freeBpm_, sampleRate_, loop_, scratch_); freeQ_ += blockQ; }
     for (auto& e : scratch_) {
+        if (!audible(e.channel)) continue;
+        e.velocity = juce::jlimit(1, 127, int(e.velocity * gain_[roleOfChannel(e.channel)].load() / 0.8f));
         auto m = e.on ? juce::MidiMessage::noteOn(e.channel, e.pitch, (juce::uint8) e.velocity) : juce::MidiMessage::noteOff(e.channel, e.pitch);
         midi.addEvent(m, juce::jlimit(0, audio.getNumSamples() - 1, e.sampleOffset));
     }

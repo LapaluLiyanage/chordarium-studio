@@ -29,9 +29,23 @@ public:
     void setNotes(std::vector<chordarium::Note> n, int64_t len);
     void previewPlay(double bpm) { freeBpm_ = bpm; freeQ_ = 0; playing_ = true; }
     void previewStop() { playing_ = false; }
+    void setSyncHost(bool host) { syncHost_ = host; }
+    void setLoop(bool on) { loop_ = on; }
+    // Per-role mix (0 piano,1 bass,2 pad,3 drums). Mute/solo are applied by dropping events in processBlock.
+    void setRoleMix(int role, bool mute, bool solo, float gain) { mute_[role] = mute; solo_[role] = solo; gain_[role] = gain; }
+    double hostBpm() const { return lastBpm_.load(); }
 private:
     double sampleRate_ = 44100, freeBpm_ = 90, freeQ_ = 0;
-    std::atomic<bool> playing_ { false };
+    std::atomic<bool> playing_ { false }, syncHost_ { false }, loop_ { true };
+    std::atomic<bool> mute_[4] {}, solo_[4] {};
+    std::atomic<float> gain_[4] { 0.8f, 0.8f, 0.8f, 0.8f };
+    std::atomic<double> lastBpm_ { 90 };
+    static int roleOfChannel(int ch) { return ch == 1 ? 0 : ch == 2 ? 1 : ch == 3 ? 2 : 3; }
+    bool audible(int ch) const {
+        bool anySolo = solo_[0] || solo_[1] || solo_[2] || solo_[3];
+        int r = roleOfChannel(ch);
+        return !mute_[r] && (!anySolo || solo_[r]);
+    }
     chordarium::Playback playback_;   // [TODO M4] replace with a lock-free double buffer; no allocation on the audio thread
     juce::String snapshot_;
     std::vector<chordarium::MidiOut> scratch_;
