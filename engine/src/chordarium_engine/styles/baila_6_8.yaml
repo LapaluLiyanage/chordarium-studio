@@ -1,0 +1,40 @@
+# STARTER TEMPLATE - to be refined with musicians (Fastunes).
+id: baila_6_8
+name: Baila 6/8
+starter: true
+time_signatures:
+- [6, 8]
+- [4, 4]
+tempo_range: [100, 130]
+defaults:
+  piano:
+    pattern: ballad_comp
+    density: 0.7
+    velocity: [55, 85]
+    register: mid
+  bass:
+    pattern: root_octave
+    density: 0.7
+    velocity: [65, 90]
+    register: low
+  pad:
+    pattern: sustain
+    density: 0.2
+    velocity: [35, 50]
+    register: mid_high
+  drums:
+    pattern: baila_6_8
+    density: 0.7
+    velocity: [60, 95]
+    fills: every_4_bars
+patterns:
+  piano: [block, broken, arpeggio_up, arpeggio_updown, ballad_comp]
+  bass: [root, root_fifth, root_octave, walking_lite]
+  pad: [sustain, swell]
+  drums: [baila_6_8, pop_basic]
+grids:
+  baila_6_8:
+    12: {kick: x.....x....., snare: ..x...x.x..., hat: x.x.x.x.x.x.}
+    16: {kick: x.....x.x......., snare: '....x.......x...', hat: x.x.x.x.x.x.x.x.}
+  pop_basic:
+    16: {kick: x.......x.x....., snare: '....x.......x...', hat: x.x.x.x.x.x.x.x.}

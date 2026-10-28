@@ -1,0 +1,37 @@
+# STARTER TEMPLATE - to be refined with musicians (Fastunes).
+id: pop_4_4
+name: Pop 4/4
+starter: true
+time_signatures:
+- [4, 4]
+tempo_range: [90, 130]
+defaults:
+  piano:
+    pattern: block
+    density: 0.5
+    velocity: [50, 75]
+    register: mid
+  bass:
+    pattern: root
+    density: 0.5
+    velocity: [60, 80]
+    register: low
+  pad:
+    pattern: sustain
+    density: 0.2
+    velocity: [40, 55]
+    register: mid_high
+  drums:
+    pattern: pop_basic
+    density: 0.6
+    velocity: [55, 90]
+patterns:
+  piano: [block, broken, arpeggio_up, arpeggio_updown, ballad_comp]
+  bass: [root, root_fifth, root_octave, walking_lite]
+  pad: [sustain, swell]
+  drums: [pop_basic, half_time]
+grids:
+  pop_basic:
+    16: {kick: x.......x.x....., snare: '....x.......x...', hat: x.x.x.x.x.x.x.x.}
+  half_time:
+    16: {kick: x.........x....., snare: '........x.......', hat: x.x.x.x.x.x.x.x.}

@@ -1,0 +1,37 @@
+# STARTER TEMPLATE - to be refined with musicians (Fastunes).
+id: lofi
+name: Lo-fi
+starter: true
+time_signatures:
+- [4, 4]
+tempo_range: [70, 95]
+defaults:
+  piano:
+    pattern: broken
+    density: 0.4
+    velocity: [35, 60]
+    register: mid
+  bass:
+    pattern: root
+    density: 0.4
+    velocity: [50, 70]
+    register: low
+  pad:
+    pattern: swell
+    density: 0.2
+    velocity: [30, 45]
+    register: mid_high
+  drums:
+    pattern: lofi_swing
+    density: 0.5
+    velocity: [40, 75]
+patterns:
+  piano: [block, broken, arpeggio_up, arpeggio_updown, ballad_comp]
+  bass: [root, root_fifth, root_octave, walking_lite]
+  pad: [sustain, swell]
+  drums: [lofi_swing, half_time]
+grids:
+  lofi_swing:
+    16: {kick: x.....x...x....., snare: '....x.......x...', hat: x.o.x.o.x.o.x.o.}
+  half_time:
+    16: {kick: x.........x....., snare: '........x.......', hat: x.x.x.x.x.x.x.x.}

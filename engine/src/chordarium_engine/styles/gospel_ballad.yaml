@@ -1,0 +1,41 @@
+# STARTER TEMPLATE - to be refined with musicians (Fastunes).
+id: gospel_ballad
+name: Gospel Ballad
+starter: true
+time_signatures:
+- [4, 4]
+- [6, 8]
+tempo_range: [60, 84]
+defaults:
+  piano:
+    pattern: ballad_comp
+    density: 0.6
+    velocity: [45, 72]
+    register: mid
+  bass:
+    pattern: root_fifth
+    density: 0.5
+    velocity: [55, 75]
+    register: low
+  pad:
+    pattern: swell
+    density: 0.3
+    velocity: [40, 60]
+    register: mid_high
+  drums:
+    pattern: gospel_shuffle
+    density: 0.4
+    velocity: [45, 80]
+patterns:
+  piano: [block, broken, arpeggio_up, arpeggio_updown, ballad_comp]
+  bass: [root, root_fifth, root_octave, walking_lite]
+  pad: [sustain, swell]
+  drums: [gospel_shuffle, half_time, ballad_light]
+grids:
+  gospel_shuffle:
+    16: {kick: x.....x.x......., snare: '....x.......x...', hat: x.x.x.x.x.x.x.x.}
+  half_time:
+    16: {kick: x.........x....., snare: '........x.......', hat: x.x.x.x.x.x.x.x.}
+  ballad_light:
+    16: {kick: x.......x......., rim: '....o.......o...', hat: o...o...o...o...}
+    12: {kick: x.....x....., rim: '......x.....', hat: o.....o.....}

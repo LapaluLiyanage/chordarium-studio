@@ -1,0 +1,41 @@
+# STARTER TEMPLATE - to be refined with musicians (Fastunes).
+id: sinhala_ballad
+name: Sinhala Ballad
+starter: true
+time_signatures:
+- [4, 4]
+- [6, 8]
+tempo_range: [60, 90]
+defaults:
+  piano:
+    pattern: arpeggio_up
+    density: 0.4
+    velocity: [40, 62]
+    register: mid
+  bass:
+    pattern: root_fifth
+    density: 0.5
+    velocity: [55, 72]
+    register: low
+  pad:
+    pattern: sustain
+    density: 0.2
+    velocity: [35, 50]
+    register: mid_high
+  drums:
+    pattern: ballad_light
+    density: 0.3
+    velocity: [45, 75]
+patterns:
+  piano: [block, broken, arpeggio_up, arpeggio_updown, ballad_comp]
+  bass: [root, root_fifth, root_octave, walking_lite]
+  pad: [sustain, swell]
+  drums: [ballad_light, pop_basic, half_time]
+grids:
+  ballad_light:
+    16: {kick: x.......x......., rim: '....o.......o...', hat: o...o...o...o...}
+    12: {kick: x.....x....., rim: '......x.....', hat: o.....o.....}
+  pop_basic:
+    16: {kick: x.......x.x....., snare: '....x.......x...', hat: x.x.x.x.x.x.x.x.}
+  half_time:
+    16: {kick: x.........x....., snare: '........x.......', hat: x.x.x.x.x.x.x.x.}

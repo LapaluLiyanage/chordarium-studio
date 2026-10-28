@@ -1,0 +1,38 @@
+# STARTER TEMPLATE - to be refined with musicians (Fastunes).
+id: bollywood_pop
+name: Bollywood Pop
+starter: true
+time_signatures:
+- [4, 4]
+tempo_range: [90, 125]
+defaults:
+  piano:
+    pattern: arpeggio_updown
+    density: 0.6
+    velocity: [50, 78]
+    register: mid
+  bass:
+    pattern: walking_lite
+    density: 0.6
+    velocity: [60, 85]
+    register: low
+  pad:
+    pattern: sustain
+    density: 0.3
+    velocity: [40, 58]
+    register: mid_high
+  drums:
+    pattern: bollywood_pop
+    density: 0.6
+    velocity: [55, 90]
+    fills: end_of_section
+patterns:
+  piano: [block, broken, arpeggio_up, arpeggio_updown, ballad_comp]
+  bass: [root, root_fifth, root_octave, walking_lite]
+  pad: [sustain, swell]
+  drums: [bollywood_pop, pop_basic]
+grids:
+  bollywood_pop:
+    16: {kick: x...x...x...x..., snare: '....x.......x...', hat: x.x.x.x.x.x.x.xx}
+  pop_basic:
+    16: {kick: x.......x.x....., snare: '....x.......x...', hat: x.x.x.x.x.x.x.x.}
