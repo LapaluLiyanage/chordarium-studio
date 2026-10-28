@@ -10,6 +10,7 @@ from typing import Callable
 from chordarium_engine.arrange import PlanError
 from chordarium_engine.styles import load_styles
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from . import __version__
@@ -21,6 +22,24 @@ from .session import Session, SessionError
 from .tools import TOOLS, ToolContext, ToolError, call_tool, openai_schema
 
 ProviderFactory = Callable[[Config], Provider]
+
+
+def _activity(name: str, args: dict, out) -> str | None:
+    """One-line summary of a tool call made by an MCP client (feeds the Assistant activity list)."""
+    if name == "arrange" and isinstance(out, dict):
+        secs = sorted({p["section_id"] for p in out.get("parts", [])})
+        return f"Claude arranged {', '.join(secs) or 'the song'} — {len(out.get('parts', []))} parts"
+    if name in ("edit_part", "regenerate_part") and isinstance(out, dict):
+        return f"{'Regenerated' if name == 'regenerate_part' else 'Edited'} {out.get('role')} · {out.get('section_id')}"
+    if name == "set_part_lock" and isinstance(out, dict):
+        return f"{'Locked' if out.get('locked') else 'Unlocked'} {out.get('role')} · {out.get('section_id')}"
+    if name == "load_chord_sheet" and isinstance(out, dict):
+        return f"Loaded “{out.get('title')}”"
+    if name == "export_midi" and isinstance(out, dict):
+        return f"Exported {len(out.get('files', []))} MIDI file(s)"
+    if name == "transport":
+        return f"Cubase: {args.get('action')}"
+    return None
 
 
 def default_provider_factory(cfg: Config) -> Provider:
@@ -54,6 +73,9 @@ def create_app(home: Path | None = None, session: Session | None = None, remote:
     state = {"cfg": cfg, "save_handle": None}
     app = FastAPI(title="Chordarium Studio core", version=__version__)
     app.state.session, app.state.hub, app.state.ctx = sess, hub, ctx
+    # Browser dev mode (localhost:5173) and the plugin WebView resource origin; still token-protected.
+    app.add_middleware(CORSMiddleware, allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1)(:\d+)?|https://juce\.backend|juce://juce\.backend)$",
+                       allow_methods=["*"], allow_headers=["*"])
 
     def schedule_save() -> None:
         try:
@@ -141,9 +163,28 @@ def create_app(home: Path | None = None, session: Session | None = None, remote:
             raise HTTPException(422, "text is required")
         return sess.load_sheet(body["text"], body.get("title")).model_dump(mode="json")
 
+    @app.post("/song/preview", dependencies=[Depends(auth)])
+    async def preview(body: dict):
+        from chordarium_engine.parser.sheet import parse_sheet
+        return parse_sheet(body.get("text") or "", body.get("title")).model_dump(mode="json")
+
     @app.patch("/song", dependencies=[Depends(auth)])
     async def patch_song(body: dict):
         return sess.patch_song(body).model_dump(mode="json")
+
+    @app.post("/chords/validate", dependencies=[Depends(auth)])
+    async def validate_chords(body: dict):
+        from chordarium_engine.parser.chords import ChordParseError, is_no_chord, parse_chord
+        out = []
+        for sym in body.get("symbols", []):
+            if is_no_chord(str(sym)):
+                out.append({"symbol": sym, "ok": True, "canonical": "N.C."})
+                continue
+            try:
+                out.append({"symbol": sym, "ok": True, "canonical": parse_chord(str(sym)).symbol})
+            except ChordParseError as e:
+                out.append({"symbol": sym, "ok": False, "error": str(e)})
+        return {"results": out}
 
     @app.post("/select", dependencies=[Depends(auth)])
     async def select(body: dict):
@@ -223,7 +264,11 @@ def create_app(home: Path | None = None, session: Session | None = None, remote:
     async def tool(name: str, body: dict | None = None):
         if name not in TOOLS:
             raise HTTPException(404, f"Unknown tool {name}")
-        return call_tool(ctx, name, body)
+        out = call_tool(ctx, name, body)
+        note = _activity(name, body or {}, out)
+        if note:
+            hub.broadcast({"type": "activity", "tool": name, "summary": note, "ok": True})
+        return out
 
     # ---- chat ----
     @app.post("/chat", dependencies=[Depends(auth)])

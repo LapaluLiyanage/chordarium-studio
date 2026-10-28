@@ -11,6 +11,7 @@ from chordarium_engine.arrange import PlanError, build_part, default_plan, defau
 from chordarium_engine.generators.common import section_ticks
 from chordarium_engine.midi_export import export_part, export_section, export_song, part_filename
 from chordarium_engine.models import ArrangementPlan, Part, PartSpec, Song
+from chordarium_engine.parser.chords import ChordParseError, is_no_chord, parse_chord
 from chordarium_engine.parser.sheet import parse_sheet
 from chordarium_engine.styles import get_style
 
@@ -127,6 +128,17 @@ class Session:
         old_bars = {s.id: s.bars for s in song.sections}
         merged = {**song.model_dump(mode="json"), **patch}
         new = Song.model_validate(merged)
+        for sec in new.sections:
+            for bi, bar in enumerate(sec.bars, 1):
+                for slot in bar.chords:
+                    if is_no_chord(slot.symbol):
+                        slot.symbol = "N.C."
+                        continue
+                    try:
+                        slot.symbol = parse_chord(slot.symbol).symbol
+                    except ChordParseError:
+                        self.undo_stack.pop()
+                        raise SessionError(f"{sec.name}, bar {bi}: '{slot.symbol}' is not a chord I know.") from None
         new.warnings = song.warnings
         self.song = new
         live = {s.id for s in new.sections}

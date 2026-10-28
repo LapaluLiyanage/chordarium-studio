@@ -179,3 +179,43 @@ def test_websocket_auth_events_and_preview(loaded):
             if m["type"] == "preview.parts":
                 break
         assert len(m["parts"]) == 4 and m["parts"][0]["notes"]
+
+
+def test_chord_validation_and_patch_rejects_bad_chords(loaded):
+    c = loaded.c
+    r = c.post("/chords/validate", json={"symbols": ["Bbmaj7/D", "N.C.", "Hm", "Gsus"]}).json()["results"]
+    assert [x["ok"] for x in r] == [True, True, False, True] and r[3]["canonical"] == "Gsus4"
+    snap = c.get("/session/snapshot").json()["song"]
+    snap["sections"][0]["bars"][0]["chords"][0]["symbol"] = "Zzz"
+    res = c.patch("/song", json={"sections": snap["sections"]})
+    assert res.status_code == 400 and "not a chord" in res.json()["detail"]
+    snap["sections"][0]["bars"][0]["chords"][0]["symbol"] = "Gsus"
+    c.patch("/song", json={"sections": snap["sections"]})
+    assert c.get("/session").json()["song"]["sections"][0]["chords"][0] == ["Gsus4"]
+
+
+def test_cors_allows_local_dev_origin_only(env):
+    ok = env.c.options("/session", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET",
+                                            "Access-Control-Request-Headers": "x-chordarium-token"})
+    assert ok.headers.get("access-control-allow-origin") == "http://localhost:5173"
+    bad = env.c.options("/session", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"})
+    assert "access-control-allow-origin" not in bad.headers
+
+
+def test_song_preview_does_not_replace_session(env):
+    p = env.c.post("/song/preview", json={"text": "[Chorus]\n| G | C |"}).json()
+    assert p["sections"][0]["kind"] == "chorus"
+    assert env.c.get("/session").json()["song"] is None
+
+
+def test_mcp_tool_calls_emit_activity_events(loaded):
+    c = loaded.c
+    with c.websocket_connect("/ws") as ws:
+        ws.send_json({"type": "hello", "client": "ui", "token": TOKEN})
+        assert ws.receive_json()["type"] == "hello.ok"
+        c.post("/tools/arrange", json={"section_ids": ["sec_chorus_1"]})
+        types = []
+        while "activity" not in types:
+            m = ws.receive_json()
+            types.append(m["type"])
+        assert m["summary"].startswith("Claude arranged") and "4 parts" in m["summary"]
