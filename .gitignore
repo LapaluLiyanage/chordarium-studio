@@ -12,3 +12,5 @@ build/
 *.egg-info/
 .vs/
 out/
+*.mid
+!engine/tests/fixtures/**/*.mid
