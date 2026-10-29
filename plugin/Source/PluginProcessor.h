@@ -1,12 +1,13 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Playback.h"
+#include "BuiltInSynth.h"
 
 class ChordariumProcessor : public juce::AudioProcessor {
 public:
     ChordariumProcessor();
     const juce::String getName() const override { return "Chordarium Studio"; }
-    void prepareToPlay(double sr, int) override { sampleRate_ = sr; }
+    void prepareToPlay(double sr, int) override { sampleRate_ = sr; synth_.prepare(sr); }
     void releaseResources() override {}
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     juce::AudioProcessorEditor* createEditor() override;
@@ -47,6 +48,7 @@ private:
         int r = roleOfChannel(ch);
         return !mute_[r] && (!anySolo || solo_[r]);
     }
+    chordarium::BuiltInSynth synth_;
     chordarium::Playback playback_;   // [TODO M4] replace with a lock-free double buffer; no allocation on the audio thread
     juce::String snapshot_;
     bool needsRestore_ = false;

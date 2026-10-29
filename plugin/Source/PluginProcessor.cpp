@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include <algorithm>
 #include "PluginEditor.h"
 #include "CoreConnection.h"
 
@@ -17,12 +18,21 @@ void ChordariumProcessor::processBlock(juce::AudioBuffer<float>& audio, juce::Mi
             playback_.scheduleBlock(*pos->getPpqPosition(), blockQ, pos->getBpm().orFallback(freeBpm_), sampleRate_, false, scratch_), lastBpm_ = pos->getBpm().orFallback(freeBpm_);
         }
     if (playing_.load()) { playback_.scheduleBlock(freeQ_, blockQ, freeBpm_, sampleRate_, loop_, scratch_); freeQ_ += blockQ; }
+    std::sort(scratch_.begin(), scratch_.end(), [](const chordarium::MidiOut& a, const chordarium::MidiOut& b) { return a.sampleOffset < b.sampleOffset; });
+    const int n = audio.getNumSamples();
+    float* left = audio.getWritePointer(0);
+    float* right = audio.getNumChannels() > 1 ? audio.getWritePointer(1) : left;
+    int cursor = 0;
     for (auto& e : scratch_) {
         if (!audible(e.channel)) continue;
         e.velocity = juce::jlimit(1, 127, int(e.velocity * gain_[roleOfChannel(e.channel)].load() / 0.8f));
+        const int at = juce::jlimit(0, n - 1, e.sampleOffset);
+        if (at > cursor) { synth_.render(left + cursor, right + cursor, at - cursor); cursor = at; }   // built-in preview sound
+        if (e.on) synth_.noteOn(e.channel, e.pitch, e.velocity); else synth_.noteOff(e.channel, e.pitch);
         auto m = e.on ? juce::MidiMessage::noteOn(e.channel, e.pitch, (juce::uint8) e.velocity) : juce::MidiMessage::noteOff(e.channel, e.pitch);
-        midi.addEvent(m, juce::jlimit(0, audio.getNumSamples() - 1, e.sampleOffset));
+        midi.addEvent(m, at);
     }
+    if (cursor < n) synth_.render(left + cursor, right + cursor, n - cursor);
 }
 
 void ChordariumProcessor::getStateInformation(juce::MemoryBlock& dest) {
