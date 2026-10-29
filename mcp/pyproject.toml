@@ -5,6 +5,9 @@ description = "Chordarium Studio MCP adapter: exposes core tools to Claude Deskt
 requires-python = ">=3.11"
 dependencies = ["chordarium-core", "mcp>=2.0", "httpx>=0.27"]
 
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23"]
+
 [project.scripts]
 chordarium-mcp = "chordarium_mcp.server:main"
 

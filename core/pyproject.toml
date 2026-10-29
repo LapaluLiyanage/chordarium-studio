@@ -7,7 +7,7 @@ dependencies = ["chordarium-engine", "fastapi>=0.110", "uvicorn>=0.29", "httpx>=
 
 [project.optional-dependencies]
 remote = ["python-rtmidi>=1.5"]
-dev = ["pytest>=8", "pytest-cov>=5"]
+dev = ["pytest>=8", "pytest-cov>=5", "pytest-asyncio>=0.23"]
 
 [project.scripts]
 chordarium-core = "chordarium_core.app:main"
