@@ -51,6 +51,9 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
     if (proc_.takeNeedsRestore()) CoreConnection::putSnapshot(info, proc_.snapshot());
     auto options = juce::WebBrowserComponent::Options()
         .withBackend(juce::WebBrowserComponent::Options::Backend::webview2)
+        // Hosts such as Cubase live in a read-only Program Files folder, so WebView2 needs its own writable data folder.
+        .withWinWebView2Options(juce::WebBrowserComponent::Options::WinWebView2{}
+            .withUserDataFolder(juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("ChordariumStudio").getChildFile("webview2")))
         .withNativeIntegrationEnabled()
         .withNativeFunction("getCoreConnection", [info](const juce::Array<juce::var>&, juce::WebBrowserComponent::NativeFunctionCompletion done) {
             auto* o = new juce::DynamicObject();
@@ -104,8 +107,11 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
         });
     web_ = std::make_unique<juce::WebBrowserComponent>(options);
     addAndMakeVisible(*web_);
-    // [TODO M4] production: serve ui/dist via withResourceProvider; dev: Vite server below.
-    web_->goToURL("http://127.0.0.1:5173/");
+#ifdef CHORDARIUM_EMBED_UI
+    web_->goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
+#else
+    web_->goToURL("http://127.0.0.1:5173/");   // dev: Vite server
+#endif
     setResizable(true, true);
     setResizeLimits(900, 600, 4000, 3000);
     setSize(1100, 720);
