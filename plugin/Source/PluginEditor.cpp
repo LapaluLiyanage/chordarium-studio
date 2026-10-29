@@ -47,6 +47,8 @@ void ChordariumEditor::layoutHandles() {
 ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEditor(&p), proc_(p) {
     CoreConnection::startCoreIfNeeded();
     auto info = CoreConnection::discover();
+    // Project reopened: push the saved session back into core so the UI shows the same song and parts.
+    if (proc_.takeNeedsRestore()) CoreConnection::putSnapshot(info, proc_.snapshot());
     auto options = juce::WebBrowserComponent::Options()
         .withBackend(juce::WebBrowserComponent::Options::Backend::webview2)
         .withNativeIntegrationEnabled()

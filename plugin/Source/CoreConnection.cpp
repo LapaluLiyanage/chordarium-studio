@@ -33,6 +33,25 @@ juce::File CoreConnection::exportPart(const Info& i, const juce::String& partId)
     return {};
 }
 
+static const char* kAuthJson = "Content-Type: application/json\r\nX-Chordarium-Token: ";
+
+juce::String CoreConnection::getSnapshot(const Info& i) {
+    juce::URL url(i.baseUrl + "/session/snapshot");
+    if (auto s = url.createInputStream(juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
+            .withConnectionTimeoutMs(800).withExtraHeaders(juce::String(kAuthJson) + i.token)))
+        return s->readEntireStreamAsString();
+    return {};
+}
+
+bool CoreConnection::putSnapshot(const Info& i, const juce::String& json) {
+    auto url = juce::URL(i.baseUrl + "/session/snapshot").withPOSTData(json);
+    int status = 0;
+    auto opts = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostData).withConnectionTimeoutMs(3000)
+        .withExtraHeaders(juce::String(kAuthJson) + i.token).withHttpRequestCmd("PUT").withStatusCode(&status);
+    if (auto s = url.createInputStream(opts)) { s->readEntireStreamAsString(); return status >= 200 && status < 300; }
+    return false;
+}
+
 bool CoreConnection::startCoreIfNeeded() {
     if (isHealthy(discover())) return true;
     // [VERIFY] install path comes from the installer; this default matches installer/ChordariumStudio.iss
