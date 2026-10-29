@@ -19,7 +19,15 @@ foreach ($t in 'cmake','ninja','git','cl') { if (-not (Get-Command $t -ErrorActi
 if (Get-Command pnpm -ErrorAction SilentlyContinue) { Push-Location "$root\ui"; pnpm install; pnpm build; Pop-Location }
 else { Write-Warning 'pnpm not found: skipping UI build.' }
 
-cmake -S "$root\plugin" -B "$root\plugin\build" -G Ninja -DCMAKE_BUILD_TYPE=Release
+# JUCE 8 needs the WebView2 NuGet package for static linking; fetch it once into the build folder.
+$wv = "$root\plugin\build\webview2"
+$wvPkg = "$wv\Microsoft.Web.WebView2.1.0.1901.177"
+if (-not (Test-Path "$wvPkg\build\native\include\WebView2.h")) {
+    New-Item -ItemType Directory -Force $wvPkg | Out-Null
+    Invoke-WebRequest 'https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.1901.177' -OutFile "$wv\wv2.zip"
+    Expand-Archive "$wv\wv2.zip" -DestinationPath $wvPkg -Force
+}
+cmake -S "$root\plugin" -B "$root\plugin\build" -G Ninja -DCMAKE_BUILD_TYPE=Release "-DJUCE_WEBVIEW2_PACKAGE_LOCATION=$wv"
 cmake --build "$root\plugin\build" 2>&1 | Tee-Object -FilePath "$root\plugin\build\build.log"
 ctest --test-dir "$root\plugin\build" --output-on-failure
 Write-Host "Done. VST3: $root\plugin\build\ChordariumStudio_artefacts\Release\VST3"

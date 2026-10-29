@@ -6,4 +6,4 @@ The AI plans; deterministic rules write the notes.
 
 See `CLAUDE.md` for the full build specification and `CHORDARIUM_STUDIO_UI.md` for the UI spec.
 
-Status: M0–M3 code complete (engine, core, MCP, UI); M4+ plugin is a skeleton. Needs Cubase/hardware checks: see docs/decisions/M0-spikes.md.
+Status: M0–M3 code complete and tested; M4 plugin skeleton builds as a VST3 on Windows (playback tests pass). Cubase, loopMIDI and AI-client checks still need your hardware: see docs/decisions/M0-spikes.md.
