@@ -4,6 +4,46 @@
 #include <BinaryData.h>
 #endif
 
+// Transparent overlay over a part row's name column. Dragging it exports the part to a .mid and starts an
+// external file drag (spike S3: confirm Cubase accepts the drop). A plain click falls through to the UI.
+class DragHandle : public juce::Component {
+public:
+    DragHandle(ChordariumEditor& e, juce::String id) : editor_(e), partId_(std::move(id)) { setMouseCursor(juce::MouseCursor::DraggingHandCursor); }
+    void mouseDrag(const juce::MouseEvent& ev) override {
+        if (started_ || ev.getDistanceFromDragStart() < 6) return;
+        started_ = true;
+        auto file = CoreConnection::exportPart(CoreConnection::discover(), partId_);
+        if (file.existsAsFile())
+            juce::DragAndDropContainer::performExternalDragDropOfFiles({ file.getFullPathName() }, false, this);
+    }
+    void mouseUp(const juce::MouseEvent&) override { started_ = false; }
+private:
+    ChordariumEditor& editor_;
+    juce::String partId_;
+    bool started_ = false;
+};
+
+ChordariumEditor::~ChordariumEditor() = default;
+
+void ChordariumEditor::setDragRects(const juce::Array<juce::var>& rects) {
+    handles_.clear(); handleIds_.clear(); handleRects_.clear();
+    for (auto& r : rects) {
+        handleIds_.add(r["partId"].toString());
+        handleRects_.add({ int(double(r["x"])), int(double(r["y"])), int(double(r["w"])), int(double(r["h"])) });
+        auto* h = handles_.add(new DragHandle(*this, handleIds_.getReference(handleIds_.size() - 1)));
+        addAndMakeVisible(h);
+    }
+    layoutHandles();
+}
+
+void ChordariumEditor::layoutHandles() {
+    for (int i = 0; i < handles_.size(); ++i) {
+        auto r = handleRects_[i];   // handle covers the lane's name column only (96 px), leaving the piano roll clickable
+        handles_[i]->setBounds(r.getX(), r.getY(), juce::jmin(96, r.getWidth()), r.getHeight());
+        handles_[i]->toFront(false);
+    }
+}
+
 ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEditor(&p), proc_(p) {
     CoreConnection::startCoreIfNeeded();
     auto info = CoreConnection::discover();
@@ -37,8 +77,9 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
             o->setProperty("bpm", proc_.hostBpm());
             done(juce::var(o));
         })
-        .withNativeFunction("reportDragRects", [](const juce::Array<juce::var>&, juce::WebBrowserComponent::NativeFunctionCompletion done) {
-            done({});   // [TODO M4] position native drag-handle overlays; MidiDrag.* + performExternalDragDropOfFiles (spike S3)
+        .withNativeFunction("reportDragRects", [this](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
+            if (a.size() > 0 && a[0].isArray()) setDragRects(*a[0].getArray());
+            done({});
         })
 #ifdef CHORDARIUM_EMBED_UI
         .withResourceProvider([](const juce::String& url) -> std::optional<juce::WebBrowserComponent::Resource> {

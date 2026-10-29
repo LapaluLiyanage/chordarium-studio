@@ -4,11 +4,19 @@
 
 // WebView host. [VERIFY] exact JUCE 8 WebBrowserComponent::Options API (withNativeIntegrationEnabled,
 // withResourceProvider, withNativeFunction, emitEventIfBrowserIsVisible) against the JUCE 8 docs before M4 sign-off.
-class ChordariumEditor : public juce::AudioProcessorEditor {
+class DragHandle;
+class ChordariumEditor : public juce::AudioProcessorEditor, public juce::DragAndDropContainer {
 public:
     explicit ChordariumEditor(ChordariumProcessor&);
-    void resized() override { web_->setBounds(getLocalBounds()); }
+    ~ChordariumEditor() override;
+    void resized() override { web_->setBounds(getLocalBounds()); layoutHandles(); }
+    void setDragRects(const juce::Array<juce::var>& rects);   // from the UI: one rect per part row (CSS px)
+    void layoutHandles();
 private:
     ChordariumProcessor& proc_;
     std::unique_ptr<juce::WebBrowserComponent> web_;
+    juce::OwnedArray<DragHandle> handles_;
+    juce::StringArray handleIds_;
+    juce::Array<juce::Rectangle<int>> handleRects_;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChordariumEditor)
 };
