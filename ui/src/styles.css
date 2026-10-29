@@ -7,8 +7,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .app { display: grid; grid-template-rows: auto 1fr auto; height: 100%; min-width: 900px; }
-.main { display: grid; grid-template-columns: 300px 1fr 320px; gap: var(--gap); padding: var(--gap); min-height: 0; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 14px; min-height: 0; overflow: auto; }
+.main { display: grid; grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) minmax(280px, 320px); gap: var(--gap); padding: var(--gap); min-height: 0; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; }
 .card h2 { margin: 0 0 10px; font-family: var(--font-display); font-size: 1.05em; letter-spacing: .02em; }
 .row { display: flex; align-items: center; gap: 8px; }
 .grow { flex: 1; }
@@ -22,17 +22,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--radius-pill); background: var(--surface-2); border: 1px solid var(--border); font-size: .85em; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
 .dot.ok { background: var(--success); } .dot.warn { background: var(--warning); } .dot.bad { background: var(--danger); }
-.topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 20px; border-bottom: 1px solid var(--border); }
 .topbar input, .field { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-chip); padding: 5px 8px; font: inherit; }
 .banner { background: var(--warning); color: var(--on-brand); padding: 6px 16px; font-weight: 600; }
 .sections { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .sec-tab { border: 1px solid var(--border); background: var(--surface-2); border-radius: var(--radius-pill); padding: 4px 12px; border-left: 6px solid var(--c, var(--brand)); }
 .sec-tab[aria-selected='true'] { background: var(--c, var(--brand)); color: var(--on-brand); }
-.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.bar { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-cell); padding: 6px; display: flex; gap: 4px; min-height: 48px; position: relative; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.bar { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-cell); padding: 6px 4px; display: flex; gap: 4px; min-height: 48px; min-width: 0; position: relative; }
 .bar .num { position: absolute; top: 2px; left: 6px; font-size: .65em; color: var(--text-muted); }
 .bar.warn { border-color: var(--warning); }
-.cell { flex: 1; background: none; border: 0; border-radius: 8px; font-family: var(--font-chord); font-size: 1.1em; padding-top: 10px; }
+.cell { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; background: none; border: 0; border-radius: 8px; font-family: var(--font-chord); font-size: 1.1em; padding-top: 10px; }
 .cell:hover { background: var(--surface); }
 .cs small { font-size: .65em; } .cs sup { font-size: .6em; } .cs .bass { color: var(--bass); }
 .cell-input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--brand); border-radius: 8px; padding: 4px; font: inherit; }
@@ -43,7 +43,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lane canvas { width: 100%; height: 64px; background: var(--bg); border-radius: var(--radius-chip); display: block; }
 .roll { position: relative; }
 .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--brand); pointer-events: none; }
-.bottom { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-top: 1px solid var(--border); }
+.bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 20px; border-top: 1px solid var(--border); }
 .mix { display: flex; align-items: center; gap: 4px; }
 .mix button[aria-pressed='true'] { background: var(--brand); color: var(--on-brand); }
 .chat { display: flex; flex-direction: column; gap: 8px; }
