@@ -32,7 +32,7 @@ export function Arrangement() {
   if (!snap?.song || !sec) return <section className="card"><h2>Arrangement</h2><div className="empty">{COPY.noSong}</div></section>
   return (
     <section className="card" aria-label="Arrangement">
-      <div className="row"><h2 className="grow">{sec.name}</h2>
+      <div className="row wrap-row"><h2 className="grow">{sec.name}</h2>
         <select className="field" aria-label="Style" value={plan?.style ?? styles[0]?.id ?? ''} onChange={(e) => void arrange([sec.id], e.target.value, plan?.dynamics)}>
           {styles.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>

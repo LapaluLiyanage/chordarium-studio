@@ -73,3 +73,15 @@ input.vol:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; 
 .bar:hover .bar-tools, .bar:focus-within .bar-tools { opacity: 1; }
 .bar-tools .icon-btn { padding: 0 5px; font-size: 14px; line-height: 18px; min-width: 18px; color: var(--text-muted); }
 .bar-tools .icon-btn:hover { color: var(--brand); }
+
+/* Radix sliders (Inspector). The root must be positioned: the track, range and thumbs are absolutely placed inside it. */
+.slider { position: relative; display: flex; align-items: center; height: 20px; width: 100%; touch-action: none; user-select: none; cursor: pointer; }
+.slider[data-disabled] { opacity: .5; cursor: not-allowed; }
+.slider-track { position: relative; flex: 1; height: 4px; border-radius: 2px; background: var(--surface-2); }
+.slider-range { position: absolute; height: 100%; border-radius: 2px; background: var(--brand); }
+.slider-thumb { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--text); border: 2px solid var(--brand); }
+.slider-thumb:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Buttons keep their label on one line; the Arrangement header wraps to a second row when the window is narrow. */
+.btn { white-space: nowrap; }
+.wrap-row { flex-wrap: wrap; row-gap: 8px; }

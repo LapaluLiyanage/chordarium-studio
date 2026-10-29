@@ -21,16 +21,16 @@ export function Inspector() {
         </select></label>
       <p>Density {spec.density.toFixed(2)}
         <Slider.Root className="slider" min={0} max={1} step={0.05} value={[spec.density]} disabled={off} aria-label="Density"
-          onValueCommit={([v]) => void editPart(part.id, { density: v })} style={{ display: 'flex', height: 20, alignItems: 'center' }}>
-          <Slider.Track style={{ flex: 1, height: 4, background: 'var(--surface-2)', borderRadius: 4 }}><Slider.Range style={{ position: 'absolute', height: 4, background: 'var(--brand)' }} /></Slider.Track>
-          <Slider.Thumb style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--brand)', display: 'block' }} />
+          onValueCommit={([v]) => void editPart(part.id, { density: v })}>
+          <Slider.Track className="slider-track"><Slider.Range className="slider-range" /></Slider.Track>
+          <Slider.Thumb className="slider-thumb" aria-label="Density" />
         </Slider.Root></p>
       <p>Velocity {spec.velocity[0]}–{spec.velocity[1]}
-        <Slider.Root min={1} max={127} step={1} value={spec.velocity} disabled={off} aria-label="Velocity range"
-          onValueCommit={(v) => void editPart(part.id, { velocity: v })} style={{ display: 'flex', height: 20, alignItems: 'center', position: 'relative' }}>
-          <Slider.Track style={{ flex: 1, height: 4, background: 'var(--surface-2)', borderRadius: 4, position: 'relative' }}><Slider.Range style={{ position: 'absolute', height: 4, background: 'var(--brand)' }} /></Slider.Track>
-          <Slider.Thumb style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--brand)', display: 'block' }} />
-          <Slider.Thumb style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--brand)', display: 'block' }} />
+        <Slider.Root className="slider" min={1} max={127} step={1} value={spec.velocity} disabled={off} aria-label="Velocity range"
+          onValueCommit={(v) => void editPart(part.id, { velocity: v })}>
+          <Slider.Track className="slider-track"><Slider.Range className="slider-range" /></Slider.Track>
+          <Slider.Thumb className="slider-thumb" aria-label="Lowest velocity" />
+          <Slider.Thumb className="slider-thumb" aria-label="Highest velocity" />
         </Slider.Root></p>
       <label>Register<br />
         <select className="field" disabled={off} value={spec.register} onChange={(e) => void editPart(part.id, { register: e.target.value })}>
