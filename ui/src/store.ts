@@ -191,9 +191,8 @@ export const useStore = create<State>((set, get) => ({
     const { api, snap } = get(); const part = snap?.parts[partId]; if (!api || !part) return
     const wasLocked = part.locked
     const ok = await get().guard(() => api.putNotes(partId, notes))
-    if (!ok) return
-    await get().refresh()
-    if (!wasLocked) get().toast(`${part.role[0].toUpperCase()}${part.role.slice(1)} is now hand-edited and locked, so Re-arrange keeps it. Unlock it to regenerate.`)
+    await get().refresh()   // also when rejected, so the roll snaps back to what the core holds
+    if (ok && !wasLocked) get().toast(`${part.role[0].toUpperCase()}${part.role.slice(1)} is now hand-edited and locked, so Re-arrange keeps it. Unlock it to regenerate.`)
   },
   async toggleLock(partId) {
     const { api, snap } = get(); const part = snap?.parts[partId]; if (!api || !part) return

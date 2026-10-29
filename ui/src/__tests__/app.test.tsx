@@ -76,23 +76,63 @@ describe('App', () => {
     await waitFor(() => expect(patchSong).toHaveBeenCalledTimes(3))
     expect(last()).toHaveLength(1)
   })
-  it('adds a note by clicking the piano roll and deletes it by clicking it again', async () => {
-    const putNotes = vi.fn(async () => ({}))
-    await useStore.getState().init(fakeApi({ putNotes }))
-    render(<App />)
-    const roll = await screen.findByRole('img', { name: /piano notes: 1/ })
-    // 8 quarters = 3840 ticks over 384 px, so 1 px = 10 ticks; one existing note at pitch 60 (row 0 of 60..71)
-    roll.getBoundingClientRect = () => ({ left: 0, top: 0, width: 384, height: 64, right: 384, bottom: 64, x: 0, y: 0, toJSON: () => ({}) })
-    fireEvent.pointerDown(roll, { clientX: 48, clientY: 50 })   // tick 480, two rows up = pitch 62
-    await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(1))
-    const sent = (putNotes.mock.calls[0] as unknown as [string, { pitch: number; start: number; duration: number }[]])
-    expect(sent[0]).toBe('p_piano')
-    expect(sent[1]).toHaveLength(2)
-    expect(sent[1][1]).toMatchObject({ pitch: 62, start: 480, duration: 240 })
+  describe('piano roll editing', () => {
+    // 8 quarters = 3840 ticks over 384 px, so 1 px = 10 ticks. One note: pitch 60, start 0, 480 long (x 0..48), velocity 50.
+    // Pitches 60..71 over a 64 px canvas: row height 4.67 px, pitch 60 sits at y 55..60.
+    const setup = async () => {
+      const putNotes = vi.fn(async () => ({}))
+      await useStore.getState().init(fakeApi({ putNotes }))
+      render(<App />)
+      const roll = await screen.findByRole('img', { name: /piano notes: 1/ })
+      roll.getBoundingClientRect = () => ({ left: 0, top: 0, width: 384, height: 64, right: 384, bottom: 64, x: 0, y: 0, toJSON: () => ({}) })
+      type Sent = [string, { pitch: number; start: number; duration: number; velocity: number }[]]
+      return { roll, putNotes, sent: (n: number) => putNotes.mock.calls[n] as unknown as Sent }
+    }
 
-    fireEvent.pointerDown(roll, { clientX: 10, clientY: 59 })   // inside the existing pitch-60 note (starts at tick 0, 480 long)
-    await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(2))
-    expect((putNotes.mock.calls[1] as unknown as [string, unknown[]])[1]).toHaveLength(0)
+    it('adds a note by clicking empty space', async () => {
+      const { roll, putNotes, sent } = await setup()
+      fireEvent.pointerDown(roll, { clientX: 48, clientY: 50 })   // tick 480, two rows up = pitch 62
+      await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(1))
+      expect(sent(0)[0]).toBe('p_piano')
+      expect(sent(0)[1]).toHaveLength(2)
+      expect(sent(0)[1][1]).toMatchObject({ pitch: 62, start: 480, duration: 240 })
+    })
+
+    it('moves a note by dragging it, snapped to the grid', async () => {
+      const { roll, putNotes, sent } = await setup()
+      fireEvent.pointerDown(roll, { clientX: 10, clientY: 58 })
+      fireEvent.pointerMove(roll, { clientX: 58, clientY: 49 })   // +480 ticks, two rows up
+      fireEvent.pointerUp(roll, { clientX: 58, clientY: 49 })
+      await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(1))
+      expect(sent(0)[1]).toHaveLength(1)
+      expect(sent(0)[1][0]).toMatchObject({ pitch: 62, start: 480, duration: 480 })
+    })
+
+    it('resizes a note by dragging its right end', async () => {
+      const { roll, putNotes, sent } = await setup()
+      fireEvent.pointerDown(roll, { clientX: 45, clientY: 58 })   // within 7 px of the note end (x = 48)
+      fireEvent.pointerMove(roll, { clientX: 96, clientY: 58 })
+      fireEvent.pointerUp(roll, { clientX: 96, clientY: 58 })
+      await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(1))
+      expect(sent(0)[1][0]).toMatchObject({ pitch: 60, start: 0, duration: 960 })
+    })
+
+    it('selects on click without changing anything, then edits velocity from the keyboard', async () => {
+      const { roll, putNotes, sent } = await setup()
+      fireEvent.pointerDown(roll, { clientX: 10, clientY: 58 })
+      fireEvent.pointerUp(roll, { clientX: 10, clientY: 58 })
+      expect(putNotes).not.toHaveBeenCalled()   // a plain click only selects
+      fireEvent.keyDown(roll, { key: 'ArrowUp' })
+      await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(1))
+      expect(sent(0)[1][0].velocity).toBe(55)
+    })
+
+    it('deletes a note with a double-click', async () => {
+      const { roll, putNotes, sent } = await setup()
+      fireEvent.doubleClick(roll, { clientX: 10, clientY: 58 })
+      await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(1))
+      expect(sent(0)[1]).toHaveLength(0)
+    })
   })
   it('shows an error toast when the core rejects a chord', async () => {
     await useStore.getState().init(fakeApi({ patchSong: async () => { throw new Error("Chorus 1, bar 1: 'Xq' is not a chord I know.") } }))
