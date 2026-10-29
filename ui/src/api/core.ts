@@ -41,6 +41,7 @@ export class CoreApi {
   arrange = (b: { section_ids?: string[]; plan?: Partial<ArrangementPlan>; style?: string; dynamics?: string }) => this.req('POST', '/arrange', b)
   editPart = (id: string, changes: Record<string, unknown>) => this.req<Part>('POST', `/parts/${id}/edit`, changes)
   regenerate = (id: string, seed?: number) => this.req<Part>('POST', `/parts/${id}/regenerate`, { seed })
+  putNotes = (id: string, notes: unknown[]) => this.req<unknown>('PUT', `/parts/${id}/notes`, { notes })
   lock = (id: string, locked: boolean) => this.req('POST', `/parts/${id}/lock`, { locked })
   clearPart = (id: string) => this.req('DELETE', `/parts/${id}`)
   exportMidi = (scope: 'part' | 'section' | 'song', ids?: string[]) => this.req<{ files: string[]; message: string }>('POST', '/export', { scope, ids })

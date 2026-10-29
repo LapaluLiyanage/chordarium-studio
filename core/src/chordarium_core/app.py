@@ -231,6 +231,11 @@ def create_app(home: Path | None = None, session: Session | None = None, remote:
         p = _part(part_id)
         return sess.edit_part(p.section_id, p.role, body).model_dump(mode="json")
 
+    @app.put("/parts/{part_id}/notes", dependencies=[Depends(auth)])
+    async def put_notes(part_id: str, body: dict):
+        _part(part_id)
+        return sess.set_notes(part_id, body.get("notes") or []).model_dump(mode="json")
+
     @app.post("/parts/{part_id}/regenerate", dependencies=[Depends(auth)])
     async def regen(part_id: str, body: dict | None = None):
         p = _part(part_id)

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../App'
@@ -75,6 +75,24 @@ describe('App', () => {
     await userEvent.click(screen.getByLabelText('Delete bar 2', { selector: 'button' }))
     await waitFor(() => expect(patchSong).toHaveBeenCalledTimes(3))
     expect(last()).toHaveLength(1)
+  })
+  it('adds a note by clicking the piano roll and deletes it by clicking it again', async () => {
+    const putNotes = vi.fn(async () => ({}))
+    await useStore.getState().init(fakeApi({ putNotes }))
+    render(<App />)
+    const roll = await screen.findByRole('img', { name: /piano notes: 1/ })
+    // 8 quarters = 3840 ticks over 384 px, so 1 px = 10 ticks; one existing note at pitch 60 (row 0 of 60..71)
+    roll.getBoundingClientRect = () => ({ left: 0, top: 0, width: 384, height: 64, right: 384, bottom: 64, x: 0, y: 0, toJSON: () => ({}) })
+    fireEvent.pointerDown(roll, { clientX: 48, clientY: 50 })   // tick 480, two rows up = pitch 62
+    await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(1))
+    const sent = (putNotes.mock.calls[0] as unknown as [string, { pitch: number; start: number; duration: number }[]])
+    expect(sent[0]).toBe('p_piano')
+    expect(sent[1]).toHaveLength(2)
+    expect(sent[1][1]).toMatchObject({ pitch: 62, start: 480, duration: 240 })
+
+    fireEvent.pointerDown(roll, { clientX: 10, clientY: 59 })   // inside the existing pitch-60 note (starts at tick 0, 480 long)
+    await waitFor(() => expect(putNotes).toHaveBeenCalledTimes(2))
+    expect((putNotes.mock.calls[1] as unknown as [string, unknown[]])[1]).toHaveLength(0)
   })
   it('shows an error toast when the core rejects a chord', async () => {
     await useStore.getState().init(fakeApi({ patchSong: async () => { throw new Error("Chorus 1, bar 1: 'Xq' is not a chord I know.") } }))

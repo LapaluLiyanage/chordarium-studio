@@ -9,7 +9,7 @@ import { MiniPianoRoll } from './MiniPianoRoll'
 import { Playhead } from './Playhead'
 
 export function Arrangement() {
-  const { snap, selectedId, arrange, regenerate, toggleLock, inspector, setInspector, thinking, styles } = useStore()
+  const { snap, selectedId, arrange, regenerate, toggleLock, setNotes, inspector, setInspector, thinking, styles } = useStore()
   const parts = partsFor(snap, selectedId)
   const plan = planFor(snap, selectedId)
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -54,7 +54,7 @@ export function Arrangement() {
                   <span className="muted">{p.notes.length}</span>
                 </div>
               </div>
-              <MiniPianoRoll part={p} ticks={q * PPQ} colorVar={`--role-${role}`} />
+              <MiniPianoRoll part={p} ticks={q * PPQ} colorVar={`--role-${role}`} tall={inspector === role} onChange={(notes) => void setNotes(p.id, notes)} />
             </div>
           )
         })}

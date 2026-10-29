@@ -10,7 +10,7 @@ from typing import Callable
 from chordarium_engine.arrange import PlanError, build_part, default_plan, default_seed, validate_plan
 from chordarium_engine.generators.common import section_ticks
 from chordarium_engine.midi_export import export_part, export_section, export_song, part_filename
-from chordarium_engine.models import ArrangementPlan, Part, PartSpec, Song
+from chordarium_engine.models import ArrangementPlan, NoteEvent, Part, PartSpec, Song
 from chordarium_engine.parser.chords import ChordParseError, is_no_chord, parse_chord
 from chordarium_engine.parser.sheet import parse_sheet
 from chordarium_engine.styles import get_style
@@ -226,6 +226,27 @@ class Session:
     def regenerate_part(self, section_id: str, role: str, seed: int | None = None) -> Part:
         part = self.part_for(self.find_section(section_id).id, role)
         return self.edit_part(part.section_id, role, {"seed": seed if seed is not None else random.randrange(1, 2**31)})
+
+    def set_notes(self, part_id: str, notes: list[dict]) -> Part:
+        """Replace a part's notes with a hand-edited list. The part is locked so a re-arrange keeps the edit."""
+        part = self.parts.get(part_id)
+        if part is None:
+            raise SessionError(f"Part {part_id!r} not found.")
+        length = section_ticks(self.require_song().section(part.section_id))
+        try:
+            parsed = [NoteEvent.model_validate(n) for n in notes]
+        except ValueError as e:
+            raise SessionError(f"Those notes are not valid: {e}") from e
+        for n in parsed:
+            if n.start >= length:
+                raise SessionError("A note starts after the end of the section.")
+            n.duration = min(n.duration, length - n.start)   # never run past the section
+        self._checkpoint()
+        part.notes = sorted(parsed, key=lambda n: (n.start, n.pitch))
+        part.locked = True
+        part.spec.locked = True
+        self.emit("part.updated", {"part_id": part.id})
+        return part
 
     def set_lock(self, section_id: str, role: str, locked: bool) -> Part:
         part = self.part_for(self.find_section(section_id).id, role)

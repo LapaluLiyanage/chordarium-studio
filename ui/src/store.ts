@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { ApiError, CoreApi } from './api/core'
 import { getBridge, type RoleMix, type SyncMode } from './bridge'
 import { COPY } from './copy'
-import type { AppConfig, ArrangementPlan, Bar, Part, Role, Snapshot, StyleInfo } from './types'
+import type { AppConfig, ArrangementPlan, Bar, NoteEvent, Part, Role, Snapshot, StyleInfo } from './types'
 import { PPQ, ROLES } from './types'
 
 export type Dialog = null | 'paste' | 'setup' | 'settings'
@@ -50,6 +50,7 @@ interface State {
   editPart(partId: string, changes: Record<string, unknown>): Promise<void>
   regenerate(partId: string): Promise<void>
   toggleLock(partId: string): Promise<void>
+  setNotes(partId: string, notes: NoteEvent[]): Promise<void>
   undo(): Promise<void>
   redo(): Promise<void>
   sendChat(text: string): Promise<void>
@@ -185,6 +186,14 @@ export const useStore = create<State>((set, get) => ({
     const api = get().api; if (!api) return
     const p = await get().guard(() => api.regenerate(partId))
     if (p) set((s) => s.snap ? { snap: { ...s.snap, parts: { ...s.snap.parts, [p.id]: p } } } : s)
+  },
+  async setNotes(partId, notes) {
+    const { api, snap } = get(); const part = snap?.parts[partId]; if (!api || !part) return
+    const wasLocked = part.locked
+    const ok = await get().guard(() => api.putNotes(partId, notes))
+    if (!ok) return
+    await get().refresh()
+    if (!wasLocked) get().toast(`${part.role[0].toUpperCase()}${part.role.slice(1)} is now hand-edited and locked, so Re-arrange keeps it. Unlock it to regenerate.`)
   },
   async toggleLock(partId) {
     const { api, snap } = get(); const part = snap?.parts[partId]; if (!api || !part) return

@@ -229,3 +229,23 @@ def test_new_session_clears_song_and_parts_and_is_undoable(loaded):
     assert snap["song"] is None and snap["parts"] == {} and snap["plans"] == {}
     assert loaded.c.post("/undo").status_code == 200
     assert loaded.c.get("/session/snapshot").json()["song"]["title"] == "Test Song"
+
+
+def test_hand_edited_notes_are_saved_clamped_and_survive_rearrange(loaded):
+    c = loaded.c
+    c.post("/arrange", json={"section_ids": ["sec_chorus_1"]})
+    pid = "part_sec_chorus_1_piano"
+    length = next(s for s in c.get("/session").json()["song"]["sections"] if s["id"] == "sec_chorus_1")["ticks"]
+    r = c.put(f"/parts/{pid}/notes", json={"notes": [
+        {"pitch": 64, "start": 480, "duration": 240, "velocity": 70},
+        {"pitch": 60, "start": 0, "duration": 99999, "velocity": 60}]})
+    assert r.status_code == 200
+    part = r.json()
+    assert [n["start"] for n in part["notes"]] == [0, 480] and part["locked"] is True
+    assert part["notes"][0]["duration"] == length   # clamped to the section end
+    c.post("/arrange", json={"section_ids": ["sec_chorus_1"]})   # locked part is left alone
+    kept = c.get("/session/snapshot").json()["parts"][pid]["notes"]
+    assert len(kept) == 2
+    assert c.put(f"/parts/{pid}/notes", json={"notes": [{"pitch": 200, "start": 0, "duration": 10, "velocity": 50}]}).status_code == 400
+    assert c.put(f"/parts/{pid}/notes", json={"notes": [{"pitch": 60, "start": length + 5, "duration": 10, "velocity": 50}]}).status_code == 400
+    assert c.put("/parts/nope/notes", json={"notes": []}).status_code == 404
