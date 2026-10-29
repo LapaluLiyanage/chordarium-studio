@@ -27,6 +27,10 @@ const PRESETS: { id: string; label: string }[] = [
   { id: 'gemini', label: 'Gemini' }, { id: 'groq', label: 'Groq' }, { id: 'openrouter', label: 'OpenRouter' }, { id: 'mistral', label: 'Mistral' },
 ]
 
+const MCP_SNIPPET = `"chordarium-studio": {
+  "command": "chordarium-mcp"
+}`
+
 export function SettingsDialog({ setup = false }: { setup?: boolean }) {
   const { dialog, setDialog, config, setConfig, testProvider, setAppearance, reducedMotion, uiScale, cubaseLink } = useStore()
   const [key, setKey] = useState(''), [result, setResult] = useState('')
@@ -43,6 +47,11 @@ export function SettingsDialog({ setup = false }: { setup?: boolean }) {
           <p><label>Model<br /><input className="field" value={config?.model ?? ''} onChange={(e) => void setConfig({ model: e.target.value })} /></label></p>
           <p><label>API key<br /><input className="field" type="password" value={key} placeholder={config?.has_key ? '•••••• saved' : ''} onChange={(e) => setKey(e.target.value)} /></label>
             <button className="btn" onClick={() => { void setConfig({ api_key: key }); setKey('') }}>Save key</button></p>
+          <details><summary>Use Claude Desktop, Claude Code or LM Studio (MCP)</summary>
+            <p className="muted">Open Claude Desktop › Settings › Developer › Edit config. Paste this into <code>mcpServers</code> and restart Claude. Then send Claude any message.</p>
+            <pre aria-label="MCP config">{MCP_SNIPPET}</pre>
+            <button className="btn" onClick={() => void navigator.clipboard?.writeText(MCP_SNIPPET)}>Copy</button>
+          </details>
           <p><button className="btn" onClick={async () => { const r = await testProvider(); setResult(r ? (r.ok ? 'Connected ✓' : r.detail) : '') }}>Test connection</button> <span role="status">{result}</span></p>
           <p className="muted">Cubase link (loopMIDI “Chordarium Remote”): {cubaseLink ? 'found' : 'not set up — optional'}</p>
           <label className="row"><input type="checkbox" checked={reducedMotion} onChange={(e) => setAppearance({ reducedMotion: e.target.checked })} /> Reduce motion</label>
