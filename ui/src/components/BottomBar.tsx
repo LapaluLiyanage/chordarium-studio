@@ -21,7 +21,7 @@ export function BottomBar() {
           <span>{ROLE_LABEL[r]}</span>
           <button className="chip" aria-pressed={mix[r].mute} aria-label={`Mute ${r}`} onClick={() => setMix(r, { mute: !mix[r].mute })}>M</button>
           <button className="chip" aria-pressed={mix[r].solo} aria-label={`Solo ${r}`} onClick={() => setMix(r, { solo: !mix[r].solo })}>S</button>
-          <input type="range" aria-label={`${r} volume`} min={0} max={1} step={0.01} value={mix[r].gain} onChange={(e) => setMix(r, { gain: Number(e.target.value) })} />
+          <input className="vol" style={{ ['--v' as string]: `${Math.round(mix[r].gain * 100)}%` }} type="range" aria-label={`${r} volume`} title={`${ROLE_LABEL[r]} volume`} min={0} max={1} step={0.01} value={mix[r].gain} onChange={(e) => setMix(r, { gain: Number(e.target.value) })} />
         </span>
       ))}
       <span className="grow" />
