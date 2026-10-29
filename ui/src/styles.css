@@ -122,3 +122,7 @@ input.vol:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; 
 .bar .slot.active .cs { color: var(--text); }
 .now-chip { display: inline-flex; align-items: center; gap: 10px; padding: 4px 16px; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font-family: var(--font-chord); font-size: 1.5em; line-height: 1.2; }
 .now-chip > span:first-child { font-family: var(--font-ui); font-size: .5em; font-weight: 800; letter-spacing: .12em; opacity: .75; }
+
+/* Anything that starts a file drag into the DAW. */
+.drag-src { cursor: grab; user-select: none; -webkit-user-drag: none; touch-action: none; }
+.drag-src:active { cursor: grabbing; }

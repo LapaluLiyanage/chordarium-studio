@@ -4,37 +4,7 @@
 #include <BinaryData.h>
 #endif
 
-// Transparent overlay over a part row's name column. Dragging it exports the part to a .mid and starts an
-// external file drag (spike S3: confirm Cubase accepts the drop). A plain click falls through to the UI.
-class DragHandle : public juce::Component {
-public:
-    DragHandle(ChordariumEditor& e, juce::String id) : editor_(e), partId_(std::move(id)) { setMouseCursor(juce::MouseCursor::DraggingHandCursor); }
-    void mouseDrag(const juce::MouseEvent& ev) override {
-        if (started_ || ev.getDistanceFromDragStart() < 6) return;
-        started_ = true;
-        auto file = CoreConnection::exportPart(CoreConnection::discover(), partId_);
-        if (file.existsAsFile())
-            juce::DragAndDropContainer::performExternalDragDropOfFiles({ file.getFullPathName() }, false, this);
-    }
-    void mouseUp(const juce::MouseEvent&) override { started_ = false; }
-private:
-    ChordariumEditor& editor_;
-    juce::String partId_;
-    bool started_ = false;
-};
-
 ChordariumEditor::~ChordariumEditor() = default;
-
-void ChordariumEditor::setDragRects(const juce::Array<juce::var>& rects) {
-    handles_.clear(); handleIds_.clear(); handleRects_.clear();
-    for (auto& r : rects) {
-        handleIds_.add(r["partId"].toString());
-        handleRects_.add({ int(double(r["x"])), int(double(r["y"])), int(double(r["w"])), int(double(r["h"])) });
-        auto* h = handles_.add(new DragHandle(*this, handleIds_.getReference(handleIds_.size() - 1)));
-        addAndMakeVisible(h);
-    }
-    layoutHandles();
-}
 
 void ChordariumEditor::timerCallback() {
     if (!web_) return;
@@ -43,15 +13,6 @@ void ChordariumEditor::timerCallback() {
     o->setProperty("quarters", proc_.shownQuarters());
     o->setProperty("bpm", proc_.hostBpm());
     web_->emitEventIfBrowserIsVisible("transport", juce::var(o));
-}
-
-void ChordariumEditor::layoutHandles() {
-    for (int i = 0; i < handles_.size(); ++i) {
-        auto r = handleRects_[i];   // handle covers the lane's name column only (96 px), leaving the piano roll clickable
-        const bool whole = handleIds_[i].startsWith("section:");   // the "drag all to Cubase" button is covered edge to edge
-        handles_[i]->setBounds(r.getX(), r.getY(), whole ? r.getWidth() : juce::jmin(96, r.getWidth()), r.getHeight());
-        handles_[i]->toFront(false);
-    }
 }
 
 ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEditor(&p), proc_(p) {
@@ -110,8 +71,8 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
             o->setProperty("bpm", proc_.hostBpm());
             done(juce::var(o));
         })
-        .withNativeFunction("reportDragRects", [this](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
-            if (a.size() > 0 && a[0].isArray()) setDragRects(*a[0].getArray());
+        .withNativeFunction("reportDragRects", [](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
+            juce::ignoreUnused(a);   // drag handles are handled by the page itself now (startFileDrag)
             done({});
         })
 #ifdef CHORDARIUM_EMBED_UI
@@ -130,6 +91,18 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
             return std::nullopt;
         })
 #endif
+        .withNativeFunction("startFileDrag", [](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
+            // Called while the mouse button is still down. "section:<id>" exports every part as one multi-track file.
+            juce::String path;
+            if (a.size() > 0) {
+                auto file = CoreConnection::exportPart(CoreConnection::discover(), a[0].toString());
+                if (file.existsAsFile()) {
+                    path = file.getFullPathName();
+                    juce::DragAndDropContainer::performExternalDragDropOfFiles({ path }, false, nullptr);   // OS drag runs on JUCE's own thread
+                }
+            }
+            done(path);
+        })
         .withNativeFunction("revealFile", [](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
             if (a.size() > 0) { juce::File f(a[0].toString()); if (f.exists()) f.revealToUser(); }
             done({});

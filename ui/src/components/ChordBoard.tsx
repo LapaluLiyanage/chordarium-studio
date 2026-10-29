@@ -10,7 +10,7 @@ const PER_ROW = [2, 4, 8] as const
 
 /** Full-width chord board: every section as big bar cards, with bars per row, transpose and simplify. */
 export function ChordBoard() {
-  const { snap, selectedId, selectSection, playing, play, stop, transposeBy, simplifyAll, setDialog } = useStore()
+  const { snap, selectedId, selectSection, playing, play, stop, transposeBy, simplifyAll, setDialog, editBars } = useStore()
   const song = snap?.song
   const [perRow, setPerRow] = useState<number>(() => { try { return Number(localStorage.getItem('chordarium.perRow')) || 4 } catch { return 4 } })
   const [shift, setShift] = useState(0)
@@ -22,6 +22,10 @@ export function ChordBoard() {
   const move = async (by: number) => { if (await transposeBy(by)) setShift((s) => s + by) }
   // The parser reports guesses as "Bar N: ..." (N counts bars across the whole song); those bars get the dashed outline.
   const flaggedBars = new Set(song.warnings.flatMap((w) => { const m = /^Bar (\d+)/i.exec(w); return m ? [Number(m[1])] : [] }))
+  const beats = song.time_signature[0]
+  const addBars = (sectionId: string, count: number) => void editBars(sectionId, (bars) => {
+    for (let i = 0; i < count; i++) bars.push({ chords: [{ symbol: bars[bars.length - 1]?.chords.at(-1)?.symbol ?? 'C', beats }] })   // repeats the last chord
+  })
   let first = 1
   return (
     <section className="board" aria-label="Chord board">
@@ -53,6 +57,10 @@ export function ChordBoard() {
             </div>
             <div className="board-grid" style={{ ['--per-row' as string]: perRow }}>
               {sec.bars.map((b, bi) => <BarCard key={bi} board sectionId={sec.id} index={bi} bar={b} beatsPerBar={song.time_signature[0]} canDelete={sec.bars.length > 1} flagged={flaggedBars.has(start + bi)} playingSlot={sec.id === selectedId && now?.bar === bi ? now.slot : -1} />)}
+            </div>
+            <div className="row" style={{ marginTop: 8 }}>
+              <button className="btn" onClick={() => addBars(sec.id, 1)} aria-label={`Add a bar to ${sec.name}`}>+ Bar</button>
+              <button className="btn" onClick={() => addBars(sec.id, 4)} aria-label={`Add 4 bars to ${sec.name}`}>+ 4 bars</button>
             </div>
           </div>
         )

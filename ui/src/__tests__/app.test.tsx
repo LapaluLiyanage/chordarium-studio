@@ -31,7 +31,7 @@ function fakeApi(over: Record<string, unknown> = {}) {
   } as unknown as CoreApi
 }
 
-beforeEach(() => { localStorage.setItem('chordarium.setupDone', '1'); setBridge(createMockBridge()); useStore.setState({ snap: null, dialog: null, chat: [], toasts: [] }) })
+beforeEach(() => { localStorage.setItem('chordarium.setupDone', '1'); setBridge(createMockBridge()); useStore.setState({ snap: null, dialog: null, chat: [], toasts: [], view: 'arranger', playing: false }) })
 
 describe('App', () => {
   it('shows the empty state when there is no song', async () => {
@@ -49,6 +49,7 @@ describe('App', () => {
     const patchSong = vi.fn(async () => ({}))
     await useStore.getState().init(fakeApi({ patchSong }))
     render(<App />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Chords' }))
     await userEvent.click(await screen.findByLabelText('Bar 2 chord Em'))
     const input = screen.getByLabelText('Chord symbol')
     await userEvent.clear(input); await userEvent.type(input, 'Am{Enter}')
@@ -56,14 +57,15 @@ describe('App', () => {
     const sections = (patchSong.mock.calls[0] as unknown as [{ sections: { bars: { chords: { symbol: string }[] }[] }[] }])[0].sections
     expect(sections[0].bars[1].chords[0].symbol).toBe('Am')
   })
-  it('adds, splits and deletes bars from the chord grid', async () => {
+  it('adds, splits and deletes bars from the Chords view', async () => {
     const patchSong = vi.fn(async () => ({}))
     await useStore.getState().init(fakeApi({ patchSong }))
     render(<App />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Chords' }))
     type Sent = [{ sections: { bars: { chords: { symbol: string; beats: number }[] }[] }[] }]
     const last = () => (patchSong.mock.calls.at(-1) as unknown as Sent)[0].sections[0].bars
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Add bar' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add a bar to Chorus 1' }))
     await waitFor(() => expect(patchSong).toHaveBeenCalledTimes(1))
     expect(last()).toHaveLength(3)
     expect(last()[2].chords).toEqual([{ symbol: 'Em', beats: 4 }])   // repeats the last chord for a full 4/4 bar
@@ -200,9 +202,47 @@ describe('App', () => {
     expect(useStore.getState().uiScale).toBe(100)
   })
 
+  it('keeps the Arranger chord grid read-only and points to the Chords view', async () => {
+    await useStore.getState().init(fakeApi())
+    render(<App />)
+    await screen.findByLabelText('Bar 1 chord G')
+    expect(screen.queryByRole('button', { name: 'Bar 1 chord G' })).toBeNull()      // shown, not clickable
+    expect(screen.queryByLabelText('Delete bar 1')).toBeNull()
+    expect(screen.queryByLabelText('Add a chord to bar 1')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add bar' })).toBeNull()
+  })
+
+  it('starts a file drag after a press-and-drag on a lane, but not on a plain click', async () => {
+    const startFileDrag = vi.fn()
+    setBridge({ ...createMockBridge(), startFileDrag })
+    await useStore.getState().init(fakeApi())
+    render(<App />)
+    const head = (await screen.findByLabelText('Inspect Piano')).closest('.head') as HTMLElement
+    fireEvent.pointerDown(head, { button: 0, clientX: 10, clientY: 10 })
+    fireEvent.pointerUp(window)
+    expect(startFileDrag).not.toHaveBeenCalled()                     // a click only inspects the lane
+    fireEvent.pointerDown(head, { button: 0, clientX: 10, clientY: 10 })
+    fireEvent.pointerMove(window, { buttons: 1, clientX: 30, clientY: 12 })
+    expect(startFileDrag).toHaveBeenCalledWith('p_piano')
+    fireEvent.pointerMove(window, { buttons: 1, clientX: 60, clientY: 12 })
+    expect(startFileDrag).toHaveBeenCalledTimes(1)                   // one drag per press
+  })
+
+  it('drags the whole section from the Drag all button', async () => {
+    const startFileDrag = vi.fn()
+    setBridge({ ...createMockBridge(), startFileDrag })
+    await useStore.getState().init(fakeApi())
+    render(<App />)
+    const all = await screen.findByRole('button', { name: 'Drag all tracks to Cubase' })
+    fireEvent.pointerDown(all, { button: 0, clientX: 5, clientY: 5 })
+    fireEvent.pointerMove(window, { buttons: 1, clientX: 40, clientY: 40 })
+    expect(startFileDrag).toHaveBeenCalledWith('section:s1')
+  })
+
   it('shows an error toast when the core rejects a chord', async () => {
     await useStore.getState().init(fakeApi({ patchSong: async () => { throw new Error("Chorus 1, bar 1: 'Xq' is not a chord I know.") } }))
     render(<App />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Chords' }))
     await userEvent.click(await screen.findByLabelText('Bar 1 chord G'))
     await userEvent.type(screen.getByLabelText('Chord symbol'), 'q{Enter}')
     expect(await screen.findByText(/not a chord I know/)).toBeInTheDocument()

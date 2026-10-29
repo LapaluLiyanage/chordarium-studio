@@ -20,6 +20,8 @@ export interface Bridge {
   setSyncMode(mode: SyncMode): void
   reportDragRects(rects: DragRect[]): void
   revealFile(path: string): void
+  /** Start an OS file drag for a part ("section:<id>" for the whole section). Call while the mouse button is held. */
+  startFileDrag(id: string): void
   getHostInfo(): Promise<HostInfo>
   position(): Position
   onMeter(cb: (levels: Record<Role, number>) => void): () => void
