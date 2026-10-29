@@ -36,10 +36,20 @@ void ChordariumEditor::setDragRects(const juce::Array<juce::var>& rects) {
     layoutHandles();
 }
 
+void ChordariumEditor::timerCallback() {
+    if (!web_) return;
+    auto* o = new juce::DynamicObject();
+    o->setProperty("playing", proc_.shownPlaying());
+    o->setProperty("quarters", proc_.shownQuarters());
+    o->setProperty("bpm", proc_.hostBpm());
+    web_->emitEventIfBrowserIsVisible("transport", juce::var(o));
+}
+
 void ChordariumEditor::layoutHandles() {
     for (int i = 0; i < handles_.size(); ++i) {
         auto r = handleRects_[i];   // handle covers the lane's name column only (96 px), leaving the piano roll clickable
-        handles_[i]->setBounds(r.getX(), r.getY(), juce::jmin(96, r.getWidth()), r.getHeight());
+        const bool whole = handleIds_[i].startsWith("section:");   // the "drag all to Cubase" button is covered edge to edge
+        handles_[i]->setBounds(r.getX(), r.getY(), whole ? r.getWidth() : juce::jmin(96, r.getWidth()), r.getHeight());
         handles_[i]->toFront(false);
     }
 }
@@ -49,6 +59,8 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
     auto info = CoreConnection::discover();
     // Project reopened: push the saved session back into core so the UI shows the same song and parts.
     if (proc_.takeNeedsRestore()) CoreConnection::putSnapshot(info, proc_.snapshot());
+    else if (!proc_.sessionInitialised()) CoreConnection::newSession(info);   // brand-new instance: do not show the previous project's song
+    proc_.markSessionInitialised();
     auto options = juce::WebBrowserComponent::Options()
         .withBackend(juce::WebBrowserComponent::Options::Backend::webview2)
         // Hosts such as Cubase live in a read-only Program Files folder, so WebView2 needs its own writable data folder.
@@ -118,6 +130,10 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
             return std::nullopt;
         })
 #endif
+        .withNativeFunction("revealFile", [](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
+            if (a.size() > 0) { juce::File f(a[0].toString()); if (f.exists()) f.revealToUser(); }
+            done({});
+        })
         .withNativeFunction("previewStop", [this](const juce::Array<juce::var>&, juce::WebBrowserComponent::NativeFunctionCompletion done) {
             proc_.previewStop(); done({});
         });
@@ -128,6 +144,7 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
 #else
     web_->goToURL("http://127.0.0.1:5173/");   // dev: Vite server
 #endif
+    startTimerHz(30);
     setResizable(true, true);
     setResizeLimits(900, 600, 4000, 3000);
     setSize(1100, 720);

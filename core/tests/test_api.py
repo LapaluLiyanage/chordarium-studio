@@ -219,3 +219,13 @@ def test_mcp_tool_calls_emit_activity_events(loaded):
             m = ws.receive_json()
             types.append(m["type"])
         assert m["summary"].startswith("Claude arranged") and "4 parts" in m["summary"]
+
+
+def test_new_session_clears_song_and_parts_and_is_undoable(loaded):
+    loaded.c.post("/arrange", json={"section_ids": ["sec_chorus_1"]})
+    assert loaded.c.get("/session/snapshot").json()["parts"]
+    loaded.c.post("/session/new")
+    snap = loaded.c.get("/session/snapshot").json()
+    assert snap["song"] is None and snap["parts"] == {} and snap["plans"] == {}
+    assert loaded.c.post("/undo").status_code == 200
+    assert loaded.c.get("/session/snapshot").json()["song"]["title"] == "Test Song"

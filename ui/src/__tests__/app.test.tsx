@@ -56,6 +56,26 @@ describe('App', () => {
     const sections = (patchSong.mock.calls[0] as unknown as [{ sections: { bars: { chords: { symbol: string }[] }[] }[] }])[0].sections
     expect(sections[0].bars[1].chords[0].symbol).toBe('Am')
   })
+  it('adds, splits and deletes bars from the chord grid', async () => {
+    const patchSong = vi.fn(async () => ({}))
+    await useStore.getState().init(fakeApi({ patchSong }))
+    render(<App />)
+    type Sent = [{ sections: { bars: { chords: { symbol: string; beats: number }[] }[] }[] }]
+    const last = () => (patchSong.mock.calls.at(-1) as unknown as Sent)[0].sections[0].bars
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Add bar' }))
+    await waitFor(() => expect(patchSong).toHaveBeenCalledTimes(1))
+    expect(last()).toHaveLength(3)
+    expect(last()[2].chords).toEqual([{ symbol: 'Em', beats: 4 }])   // repeats the last chord for a full 4/4 bar
+
+    await userEvent.click(screen.getByLabelText('Add a chord to bar 1', { selector: 'button' }))
+    await waitFor(() => expect(patchSong).toHaveBeenCalledTimes(2))
+    expect(last()[0].chords).toEqual([{ symbol: 'G', beats: 2 }, { symbol: 'G', beats: 2 }])   // beats share the bar evenly
+
+    await userEvent.click(screen.getByLabelText('Delete bar 2', { selector: 'button' }))
+    await waitFor(() => expect(patchSong).toHaveBeenCalledTimes(3))
+    expect(last()).toHaveLength(1)
+  })
   it('shows an error toast when the core rejects a chord', async () => {
     await useStore.getState().init(fakeApi({ patchSong: async () => { throw new Error("Chorus 1, bar 1: 'Xq' is not a chord I know.") } }))
     render(<App />)

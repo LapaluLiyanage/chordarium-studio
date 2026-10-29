@@ -122,6 +122,14 @@ class Session:
         self.emit("session.updated")
         return self.song
 
+    def new_song(self) -> None:
+        """Start an empty session (used when a new plugin instance opens in a fresh project)."""
+        self._checkpoint()
+        self.song = None
+        self.plans, self.parts = {}, {}
+        self.selected_section_id = None
+        self.emit("session.updated")
+
     def patch_song(self, patch: dict) -> Song:
         song = self.require_song()
         self._checkpoint()

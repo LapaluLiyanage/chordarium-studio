@@ -40,6 +40,7 @@ export function createJuceBridge(): Bridge {
     setRoleMix: (r: Role, m: RoleMix) => void fn('setRoleMix')(r, m),
     setSyncMode: (m: SyncMode) => void fn('setSyncMode')(m),
     reportDragRects: (r: DragRect[]) => void fn('reportDragRects')(r),
+    revealFile: (p: string) => void fn('revealFile')(p),
     getHostInfo: () => fn('getHostInfo')() as Promise<HostInfo>,
     position: () => pos,
     onMeter: (cb) => { meters.add(cb); return () => meters.delete(cb) },

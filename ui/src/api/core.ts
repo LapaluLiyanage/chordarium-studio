@@ -32,6 +32,7 @@ export class CoreApi {
   snapshot = () => this.req<Snapshot>('GET', '/session/snapshot')
   parse = (text: string, title?: string) => this.req<Song>('POST', '/song/parse', { text, title })
   preview = (text: string) => this.req<Song>('POST', '/song/preview', { text })
+  newSession = () => this.req<unknown>('POST', '/session/new', {})
   patchSong = (patch: Partial<Song>) => this.req<Song>('PATCH', '/song', patch)
   select = (section_id: string) => this.req('POST', '/select', { section_id })
   undo = () => this.req<{ ok: boolean }>('POST', '/undo')

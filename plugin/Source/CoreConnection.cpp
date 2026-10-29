@@ -19,9 +19,11 @@ bool CoreConnection::isHealthy(const Info& i) {
 }
 
 juce::File CoreConnection::exportPart(const Info& i, const juce::String& partId) {
+    // "section:<id>" exports every part of that section as one multi-track .mid; anything else is a single part.
+    const bool wholeSection = partId.startsWith("section:");
     auto* ids = new juce::DynamicObject();
-    ids->setProperty("scope", "part");
-    ids->setProperty("ids", juce::Array<juce::var>{ partId });
+    ids->setProperty("scope", wholeSection ? "section" : "part");
+    ids->setProperty("ids", juce::Array<juce::var>{ wholeSection ? partId.fromFirstOccurrenceOf("section:", false, false) : partId });
     auto url = juce::URL(i.baseUrl + "/export").withPOSTData(juce::JSON::toString(juce::var(ids), true));
     auto opts = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostData).withConnectionTimeoutMs(3000)
         .withExtraHeaders("Content-Type: application/json\r\nX-Chordarium-Token: " + i.token)
@@ -48,6 +50,15 @@ bool CoreConnection::putSnapshot(const Info& i, const juce::String& json) {
     int status = 0;
     auto opts = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostData).withConnectionTimeoutMs(3000)
         .withExtraHeaders(juce::String(kAuthJson) + i.token).withHttpRequestCmd("PUT").withStatusCode(&status);
+    if (auto s = url.createInputStream(opts)) { s->readEntireStreamAsString(); return status >= 200 && status < 300; }
+    return false;
+}
+
+bool CoreConnection::newSession(const Info& i) {
+    auto url = juce::URL(i.baseUrl + "/session/new").withPOSTData("{}");
+    int status = 0;
+    auto opts = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostData).withConnectionTimeoutMs(3000)
+        .withExtraHeaders(juce::String(kAuthJson) + i.token).withHttpRequestCmd("POST").withStatusCode(&status);
     if (auto s = url.createInputStream(opts)) { s->readEntireStreamAsString(); return status >= 200 && status < 300; }
     return false;
 }

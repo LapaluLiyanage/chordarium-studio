@@ -30,6 +30,7 @@ export function createMockBridge(now: () => number = () => performance.now()): B
     setRoleMix(role, m) { mix[role] = m },
     setSyncMode(_m: SyncMode) {},
     reportDragRects(_r: DragRect[]) {},
+    revealFile(_p: string) {},
     async getHostInfo() { return { host: 'Browser (dev mode)', sampleRate: 48000, bpm } },
     position(): Position {
       if (!playing) return { playing: false, quarters: 0, bpm }

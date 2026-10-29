@@ -19,6 +19,7 @@ export interface Bridge {
   setRoleMix(role: Role, mix: RoleMix): void
   setSyncMode(mode: SyncMode): void
   reportDragRects(rects: DragRect[]): void
+  revealFile(path: string): void
   getHostInfo(): Promise<HostInfo>
   position(): Position
   onMeter(cb: (levels: Record<Role, number>) => void): () => void

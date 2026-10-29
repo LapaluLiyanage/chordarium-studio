@@ -5,6 +5,19 @@ import { SECTION_COLOR } from '../sections'
 import { useStore } from '../store'
 import { ChordSymbol } from './ChordSymbol'
 
+/** Split a bar into one more chord, sharing the bar's beats evenly (new chord repeats the last symbol). */
+function splitBar(bar: { chords: { symbol: string; beats: number }[] }) {
+  const total = bar.chords.reduce((t, c) => t + c.beats, 0), n = bar.chords.length + 1
+  bar.chords.push({ symbol: bar.chords.at(-1)!.symbol, beats: total / n })
+  bar.chords.forEach((c) => { c.beats = total / n })
+}
+
+function mergeBar(bar: { chords: { symbol: string; beats: number }[] }) {
+  const total = bar.chords.reduce((t, c) => t + c.beats, 0)
+  bar.chords.pop()
+  bar.chords.forEach((c) => { c.beats = total / bar.chords.length })
+}
+
 function Cell({ sectionId, bar, slot, symbol }: { sectionId: string; bar: number; slot: number; symbol: string }) {
   const patch = useStore((s) => s.patchChord)
   const [edit, setEdit] = useState(false)
@@ -25,7 +38,7 @@ function Cell({ sectionId, bar, slot, symbol }: { sectionId: string; bar: number
 }
 
 export function SongPanel() {
-  const { snap, selectedId, selectSection, setDialog } = useStore()
+  const { snap, selectedId, selectSection, setDialog, editBars, newSong } = useStore()
   const song = snap?.song
   if (!song) return (
     <section className="card"><h2>Song</h2>
@@ -36,7 +49,7 @@ export function SongPanel() {
   const flagged = song.warnings.filter((w) => /^(Bar|.*bar)/i.test(w)).length
   return (
     <section className="card" aria-label="Song">
-      <div className="row"><h2 className="grow">{song.title}</h2><button className="btn" onClick={() => setDialog('paste')}>Replace</button></div>
+      <div className="row"><h2 className="grow">{song.title}</h2><button className="btn" onClick={() => void newSong()} title="Start an empty song">New</button><button className="btn" onClick={() => setDialog('paste')}>Replace</button></div>
       {song.warnings.length > 0 && <p className="chip" role="alert">{COPY.barsNeedCheck(flagged || song.warnings.length)}</p>}
       <div className="sections" role="tablist">
         {song.sections.map((s) => (
@@ -47,8 +60,17 @@ export function SongPanel() {
         {sec.bars.map((b, bi) => (
           <div key={bi} className="bar"><span className="num">{bi + 1}</span>
             {b.chords.map((c, ci) => <Cell key={ci} sectionId={sec.id} bar={bi} slot={ci} symbol={c.symbol} />)}
+            <span className="bar-tools">
+              <button className="icon-btn" aria-label={`Add a chord to bar ${bi + 1}`} title="Split bar: add a chord" onClick={() => void editBars(sec.id, (bars) => splitBar(bars[bi]))}>+</button>
+              {b.chords.length > 1 && <button className="icon-btn" aria-label={`Remove last chord from bar ${bi + 1}`} title="Remove last chord" onClick={() => void editBars(sec.id, (bars) => mergeBar(bars[bi]))}>−</button>}
+              {sec.bars.length > 1 && <button className="icon-btn" aria-label={`Delete bar ${bi + 1}`} title="Delete bar" onClick={() => void editBars(sec.id, (bars) => { bars.splice(bi, 1) })}>×</button>}
+            </span>
           </div>
         ))}
+      </div>
+      <div className="row" style={{ marginTop: 8 }}>
+        <button className="btn" onClick={() => void editBars(sec.id, (bars, beats) => { const last = bars[bars.length - 1]?.chords.at(-1)?.symbol ?? 'C'; bars.push({ chords: [{ symbol: last, beats }] }) })}>Add bar</button>
+        <button className="btn" onClick={() => void editBars(sec.id, (bars, beats) => { for (let i = 0; i < 4; i++) { const last = bars[bars.length - 1]?.chords.at(-1)?.symbol ?? 'C'; bars.push({ chords: [{ symbol: last, beats }] }) } })}>Add 4 bars</button>
       </div>
       {song.warnings.length > 0 && <ul className="muted">{song.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
     </section>

@@ -17,13 +17,15 @@ void ChordariumProcessor::processBlock(juce::AudioBuffer<float>& audio, juce::Mi
     if (panic_.exchange(false)) { synth_.allOff(); midi.addEvent(juce::MidiMessage::allNotesOff(1), 0); midi.addEvent(juce::MidiMessage::allNotesOff(2), 0); midi.addEvent(juce::MidiMessage::allNotesOff(3), 0); midi.addEvent(juce::MidiMessage::allNotesOff(10), 0); }
     const juce::SpinLock::ScopedTryLockType tryLock(notesLock_);   // if the UI is swapping notes right now, skip scheduling this block
     const double blockQ = audio.getNumSamples() / (sampleRate_ * 60.0 / freeBpm_);
+    bool uiPlaying = false;
     if (tryLock.isLocked()) {
     if (syncHost_) if (auto* ph = getPlayHead())
         if (auto pos = ph->getPosition(); pos && pos->getIsPlaying() && pos->getPpqPosition()) {
             // synced mode [TODO M4]: offset by the user's section start bar
-            playback_.scheduleBlock(*pos->getPpqPosition(), blockQ, pos->getBpm().orFallback(freeBpm_), sampleRate_, false, scratch_), lastBpm_ = pos->getBpm().orFallback(freeBpm_);
+            uiPlaying = true, shownQ_ = *pos->getPpqPosition(), playback_.scheduleBlock(*pos->getPpqPosition(), blockQ, pos->getBpm().orFallback(freeBpm_), sampleRate_, false, scratch_), lastBpm_ = pos->getBpm().orFallback(freeBpm_);
         }
-    if (playing_.load()) { playback_.scheduleBlock(freeQ_, blockQ, freeBpm_, sampleRate_, loop_, scratch_); freeQ_ += blockQ; }
+    if (playing_.load()) { playback_.scheduleBlock(freeQ_, blockQ, freeBpm_, sampleRate_, loop_, scratch_); freeQ_ += blockQ; uiPlaying = true; shownQ_ = freeQ_; }
+    shownPlaying_ = uiPlaying;
     }
     std::sort(scratch_.begin(), scratch_.end(), [](const chordarium::MidiOut& a, const chordarium::MidiOut& b) { return a.sampleOffset < b.sampleOffset; });
     const int n = audio.getNumSamples();
@@ -66,6 +68,7 @@ void ChordariumProcessor::getStateInformation(juce::MemoryBlock& dest) {
 void ChordariumProcessor::setStateInformation(const void* data, int size) {
     auto v = juce::JSON::parse(juce::String::fromUTF8((const char*) data, size));
     if (!v.isObject()) return;
+    sessionInitialised_ = true;   // this instance belongs to a saved project: keep its song, do not reset core
     if (v.hasProperty("snapshot")) snapshot_ = v["snapshot"].toString();   // editor re-sends it to core on open
     if (v.hasProperty("syncHost")) syncHost_ = bool(v["syncHost"]);
     if (v.hasProperty("loop")) loop_ = bool(v["loop"]);

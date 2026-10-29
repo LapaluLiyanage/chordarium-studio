@@ -35,6 +35,10 @@ public:
     // Per-role mix (0 piano,1 bass,2 pad,3 drums). Mute/solo are applied by dropping events in processBlock.
     void setRoleMix(int role, bool mute, bool solo, float gain) { mute_[role] = mute; solo_[role] = solo; gain_[role] = gain; }
     bool takeNeedsRestore() { bool r = needsRestore_; needsRestore_ = false; return r; }
+    bool sessionInitialised() const { return sessionInitialised_; }
+    void markSessionInitialised() { sessionInitialised_ = true; }
+    double shownQuarters() const { return shownQ_.load(); }
+    bool shownPlaying() const { return shownPlaying_.load(); }
     double hostBpm() const { return lastBpm_.load(); }
 private:
     double sampleRate_ = 44100, freeBpm_ = 90, freeQ_ = 0;
@@ -53,7 +57,9 @@ private:
     chordarium::BuiltInSynth synth_;
     chordarium::Playback playback_;   // [TODO M4] replace with a lock-free double buffer; no allocation on the audio thread
     juce::String snapshot_;
-    bool needsRestore_ = false;
+    bool needsRestore_ = false, sessionInitialised_ = false;
+    std::atomic<double> shownQ_ { 0 };
+    std::atomic<bool> shownPlaying_ { false };
     std::vector<chordarium::MidiOut> scratch_;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChordariumProcessor)
 };

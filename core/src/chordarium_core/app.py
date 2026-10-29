@@ -157,6 +157,11 @@ def create_app(home: Path | None = None, session: Session | None = None, remote:
         sess.emit("session.updated")
         return sess.summary()
 
+    @app.post("/session/new", dependencies=[Depends(auth)])
+    async def new_session():
+        sess.new_song()
+        return sess.summary()
+
     @app.post("/song/parse", dependencies=[Depends(auth)])
     async def parse(body: dict):
         if not (body.get("text") or "").strip():

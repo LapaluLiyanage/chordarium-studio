@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { ApiError, CoreApi } from './api/core'
 import { getBridge, type RoleMix, type SyncMode } from './bridge'
 import { COPY } from './copy'
-import type { AppConfig, ArrangementPlan, Part, Role, Snapshot, StyleInfo } from './types'
+import type { AppConfig, ArrangementPlan, Bar, Part, Role, Snapshot, StyleInfo } from './types'
 import { PPQ, ROLES } from './types'
 
 export type Dialog = null | 'paste' | 'setup' | 'settings'
@@ -43,6 +43,8 @@ interface State {
   selectSection(id: string): Promise<void>
   importSheet(text: string, title?: string): Promise<boolean>
   patchChord(sectionId: string, bar: number, slot: number, symbol: string): Promise<boolean>
+  editBars(sectionId: string, change: (bars: Bar[], beatsPerBar: number) => void): Promise<boolean>
+  newSong(): Promise<void>
   setMeta(patch: Record<string, unknown>): Promise<void>
   arrange(sectionIds: string[], style?: string, dynamics?: string): Promise<void>
   editPart(partId: string, changes: Record<string, unknown>): Promise<void>
@@ -145,6 +147,23 @@ export const useStore = create<State>((set, get) => ({
     return !!ok
   },
 
+  async editBars(sectionId, change) {
+    const { api, snap } = get(); if (!api || !snap?.song) return false
+    const sections = structuredClone(snap.song.sections)
+    const sec = sections.find((x) => x.id === sectionId); if (!sec) return false
+    change(sec.bars, snap.song.time_signature[0])
+    const ok = await get().guard(() => api.patchSong({ sections }))
+    if (ok) await get().refresh()
+    return !!ok
+  },
+
+  async newSong() {
+    const api = get().api; if (!api) return
+    getBridge().previewStop(); set({ playing: false })
+    await get().guard(() => api.newSession())
+    await get().refresh()
+  },
+
   async setMeta(patch) {
     const api = get().api; if (!api) return
     await get().guard(() => api.patchSong(patch)); await get().refresh()
@@ -194,7 +213,10 @@ export const useStore = create<State>((set, get) => ({
   async exportMidi(scope, ids) {
     const api = get().api; if (!api) return
     const r = await get().guard(() => api.exportMidi(scope, ids ?? (scope === 'section' && get().selectedId ? [get().selectedId!] : undefined)))
-    if (r) get().toast(`Exported ${r.files.length} MIDI file${r.files.length === 1 ? '' : 's'}.`)
+    if (r) {
+      getBridge().revealFile(r.files[0])   // show the file in Explorer so it can be dragged into Cubase
+      get().toast(`Exported ${r.files.length} MIDI file${r.files.length === 1 ? '' : 's'} to ${r.files[0]}`)
+    }
   },
   async transport(action) {
     const api = get().api; if (!api) return
