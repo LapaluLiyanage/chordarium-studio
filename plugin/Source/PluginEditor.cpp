@@ -62,7 +62,23 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
             done(juce::var(o));
         })
         .withNativeFunction("previewPlay", [this](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
-            proc_.previewPlay(a.size() > 2 ? double(a[2]) : 90.0); done({});   // args: sectionId, lengthQuarters, bpm
+            // args: sectionId, lengthQuarters, bpm. Pull this section's notes from core, then start the preview.
+            const auto sectionId = a.size() > 0 ? a[0].toString() : juce::String();
+            const double lengthQ = a.size() > 1 ? double(a[1]) : 16.0;
+            const double bpm = a.size() > 2 ? double(a[2]) : 90.0;
+            auto snap = juce::JSON::parse(CoreConnection::getSnapshot(CoreConnection::discover()));
+            std::vector<chordarium::Note> notes;
+            if (auto* parts = snap["parts"].getDynamicObject())
+                for (auto& prop : parts->getProperties()) {
+                    auto& part = prop.value;
+                    if (part["section_id"].toString() != sectionId) continue;
+                    const int channel = int(part["channel"]);
+                    if (auto* list = part["notes"].getArray())
+                        for (auto& n : *list)
+                            notes.push_back({ int(n["pitch"]), int64_t(n["start"]), int64_t(n["duration"]), int(n["velocity"]), channel });
+                }
+            proc_.setNotes(std::move(notes), int64_t(lengthQ * chordarium::kPPQ));
+            proc_.previewPlay(bpm); done({});
         })
         .withNativeFunction("setLoop", [this](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
             proc_.setLoop(a.size() > 0 && bool(a[0])); done({});

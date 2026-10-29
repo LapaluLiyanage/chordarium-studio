@@ -29,7 +29,7 @@ public:
     juce::String snapshot() const { return snapshot_; }
     void setNotes(std::vector<chordarium::Note> n, int64_t len);
     void previewPlay(double bpm) { freeBpm_ = bpm; freeQ_ = 0; playing_ = true; }
-    void previewStop() { playing_ = false; }
+    void previewStop() { playing_ = false; panic_ = true; }
     void setSyncHost(bool host) { syncHost_ = host; }
     void setLoop(bool on) { loop_ = on; }
     // Per-role mix (0 piano,1 bass,2 pad,3 drums). Mute/solo are applied by dropping events in processBlock.
@@ -48,6 +48,8 @@ private:
         int r = roleOfChannel(ch);
         return !mute_[r] && (!anySolo || solo_[r]);
     }
+    juce::SpinLock notesLock_;                 // message thread swaps notes; the audio thread only try-locks
+    std::atomic<bool> panic_ { false };        // silence hanging notes after stop
     chordarium::BuiltInSynth synth_;
     chordarium::Playback playback_;   // [TODO M4] replace with a lock-free double buffer; no allocation on the audio thread
     juce::String snapshot_;

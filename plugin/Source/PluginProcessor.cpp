@@ -6,18 +6,25 @@
 ChordariumProcessor::ChordariumProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)) { scratch_.reserve(512); }
 
-void ChordariumProcessor::setNotes(std::vector<chordarium::Note> n, int64_t len) { playback_.setNotes(std::move(n), len); }
+void ChordariumProcessor::setNotes(std::vector<chordarium::Note> n, int64_t len) {
+    const juce::SpinLock::ScopedLockType lock(notesLock_);
+    playback_.setNotes(std::move(n), len);
+}
 
 void ChordariumProcessor::processBlock(juce::AudioBuffer<float>& audio, juce::MidiBuffer& midi) {
     audio.clear();
     scratch_.clear();
+    if (panic_.exchange(false)) { synth_.allOff(); midi.addEvent(juce::MidiMessage::allNotesOff(1), 0); midi.addEvent(juce::MidiMessage::allNotesOff(2), 0); midi.addEvent(juce::MidiMessage::allNotesOff(3), 0); midi.addEvent(juce::MidiMessage::allNotesOff(10), 0); }
+    const juce::SpinLock::ScopedTryLockType tryLock(notesLock_);   // if the UI is swapping notes right now, skip scheduling this block
     const double blockQ = audio.getNumSamples() / (sampleRate_ * 60.0 / freeBpm_);
+    if (tryLock.isLocked()) {
     if (syncHost_) if (auto* ph = getPlayHead())
         if (auto pos = ph->getPosition(); pos && pos->getIsPlaying() && pos->getPpqPosition()) {
             // synced mode [TODO M4]: offset by the user's section start bar
             playback_.scheduleBlock(*pos->getPpqPosition(), blockQ, pos->getBpm().orFallback(freeBpm_), sampleRate_, false, scratch_), lastBpm_ = pos->getBpm().orFallback(freeBpm_);
         }
     if (playing_.load()) { playback_.scheduleBlock(freeQ_, blockQ, freeBpm_, sampleRate_, loop_, scratch_); freeQ_ += blockQ; }
+    }
     std::sort(scratch_.begin(), scratch_.end(), [](const chordarium::MidiOut& a, const chordarium::MidiOut& b) { return a.sampleOffset < b.sampleOffset; });
     const int n = audio.getNumSamples();
     float* left = audio.getWritePointer(0);
