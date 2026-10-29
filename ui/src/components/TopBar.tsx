@@ -1,11 +1,12 @@
-import { Redo2, Settings, Undo2 } from 'lucide-react'
+import { Redo2, Settings, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import { KEYS, TIME_SIGNATURES } from '../chords'
 import { useStore } from '../store'
 import { BrandLogo } from './BrandLogo'
 import { StatusChip } from './StatusChip'
 
 export function TopBar() {
-  const { snap, setMeta, undo, redo, setDialog, saved, view, setView } = useStore()
+  const { snap, setMeta, undo, redo, setDialog, saved, view, setView, uiScale, setAppearance } = useStore()
+  const resize = (delta: number) => setAppearance({ uiScale: Math.min(160, Math.max(70, uiScale + delta)) })
   const song = snap?.song
   return (
     <header className="topbar">
@@ -33,7 +34,16 @@ export function TopBar() {
       <StatusChip />
       <button className="icon-btn" aria-label="Undo" onClick={() => void undo()}><Undo2 size={18} /></button>
       <button className="icon-btn" aria-label="Redo" onClick={() => void redo()}><Redo2 size={18} /></button>
-      <button className="btn" onClick={() => setView(view === 'live' ? 'arranger' : 'live')}>{view === 'live' ? 'Arranger' : 'Live chord'}</button>
+      <span className="seg" role="group" aria-label="View">
+        <button aria-pressed={view === 'arranger'} onClick={() => setView('arranger')}>Arranger</button>
+        <button aria-pressed={view === 'chords'} onClick={() => setView('chords')}>Chords</button>
+        <button aria-pressed={view === 'live'} onClick={() => setView('live')}>Live chord</button>
+      </span>
+      <span className="seg" role="group" aria-label="Window size">
+        <button onClick={() => resize(-10)} aria-label="Make everything smaller" title="Smaller" disabled={uiScale <= 70}><ZoomOut size={16} /></button>
+        <button className="seg-label" onClick={() => setAppearance({ uiScale: 100 })} title="Reset size" aria-label={`Size ${uiScale} percent. Press to reset to 100`}>{uiScale}%</button>
+        <button onClick={() => resize(10)} aria-label="Make everything larger" title="Larger" disabled={uiScale >= 160}><ZoomIn size={16} /></button>
+      </span>
       <button className="icon-btn" aria-label="Settings" onClick={() => setDialog('settings')}><Settings size={18} /></button>
     </header>
   )

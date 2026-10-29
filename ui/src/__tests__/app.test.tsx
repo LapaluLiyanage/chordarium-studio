@@ -134,6 +134,60 @@ describe('App', () => {
       expect(sent(0)[1]).toHaveLength(0)
     })
   })
+  describe('chord board', () => {
+    const setup = async (extra: Record<string, unknown> = {}) => {
+      const patchSong = vi.fn(async () => ({}))
+      await useStore.getState().init(fakeApi({ patchSong, ...extra }))
+      render(<App />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Chords' }))
+      type Sent = [{ key?: string; sections: { bars: { chords: { symbol: string }[] }[] }[] }]
+      return { patchSong, sent: (n = 0) => (patchSong.mock.calls[n] as unknown as Sent)[0] }
+    }
+
+    it('shows every section as bar cards with a bar range', async () => {
+      await setup()
+      expect(await screen.findByLabelText('Chord board')).toBeInTheDocument()
+      expect(screen.getByText('BARS 1–2')).toBeInTheDocument()
+      expect(screen.getByLabelText('Bar 1 chord G')).toBeInTheDocument()
+      expect(screen.getByLabelText('Bar 2 chord Em')).toBeInTheDocument()
+    })
+
+    it('changes bars per row and remembers it', async () => {
+      await setup()
+      await userEvent.click(screen.getByRole('button', { name: '8 / ROW' }))
+      expect(screen.getByRole('button', { name: '8 / ROW' })).toHaveAttribute('aria-pressed', 'true')
+      expect(localStorage.getItem('chordarium.perRow')).toBe('8')
+    })
+
+    it('transposes every chord and the key', async () => {
+      const { patchSong, sent } = await setup()
+      await userEvent.click(screen.getByRole('button', { name: 'Transpose up one semitone' }))
+      await waitFor(() => expect(patchSong).toHaveBeenCalledTimes(1))
+      expect(sent().key).toBe('Ab')   // G major up a semitone is Ab major, spelled with flats
+      expect(sent().sections[0].bars.map((b) => b.chords[0].symbol)).toEqual(['Ab', 'Fm'])   // G -> Ab, Em -> Fm
+      expect(await screen.findByText('TRANSPOSE +1')).toBeInTheDocument()
+    })
+
+    it('simplifies chords to triads', async () => {
+      const complex = () => ({ ...snap(), song: { ...snap().song!, sections: [{ id: 's1', name: 'Chorus 1', kind: 'chorus' as const, lyrics: null, bars: [{ chords: [{ symbol: 'Gmaj7/B', beats: 4 }] }, { chords: [{ symbol: 'Em7', beats: 4 }] }] }] } })
+      const { patchSong, sent } = await setup({ snapshot: async () => complex() })
+      await userEvent.click(screen.getByRole('button', { name: 'SIMPLIFY' }))
+      await waitFor(() => expect(patchSong).toHaveBeenCalledTimes(1))
+      expect(sent().sections[0].bars.map((b) => b.chords[0].symbol)).toEqual(['G', 'Em'])
+    })
+  })
+
+  it('changes the window size from the top bar', async () => {
+    await useStore.getState().init(fakeApi())
+    render(<App />)
+    const before = useStore.getState().uiScale
+    await userEvent.click(await screen.findByRole('button', { name: 'Make everything larger' }))
+    expect(useStore.getState().uiScale).toBe(before + 10)
+    expect(localStorage.getItem('chordarium.uiScale')).toBe(String(before + 10))
+    await userEvent.click(screen.getByRole('button', { name: /Size \d+ percent/ }))
+    expect(useStore.getState().uiScale).toBe(100)
+  })
+
   it('shows an error toast when the core rejects a chord', async () => {
     await useStore.getState().init(fakeApi({ patchSong: async () => { throw new Error("Chorus 1, bar 1: 'Xq' is not a chord I know.") } }))
     render(<App />)

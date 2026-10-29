@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { ApiError, CoreApi } from './api/core'
 import { getBridge, type RoleMix, type SyncMode } from './bridge'
 import { COPY } from './copy'
+import { keyUsesFlats, shiftNote, simplifyChord, transposeChord } from './chordtools'
 import type { AppConfig, ArrangementPlan, Bar, NoteEvent, Part, Role, Snapshot, StyleInfo } from './types'
 import { PPQ, ROLES } from './types'
 
@@ -21,7 +22,7 @@ interface State {
   selectedId: string | null
   lane: Role | null
   inspector: Role | null
-  view: 'arranger' | 'live'
+  view: 'arranger' | 'chords' | 'live'
   dialog: Dialog
   chat: ChatMsg[]
   thinking: boolean
@@ -45,6 +46,8 @@ interface State {
   patchChord(sectionId: string, bar: number, slot: number, symbol: string): Promise<boolean>
   editBars(sectionId: string, change: (bars: Bar[], beatsPerBar: number) => void): Promise<boolean>
   newSong(): Promise<void>
+  transposeBy(semitones: number): Promise<boolean>
+  simplifyAll(): Promise<void>
   setMeta(patch: Record<string, unknown>): Promise<void>
   arrange(sectionIds: string[], style?: string, dynamics?: string): Promise<void>
   editPart(partId: string, changes: Record<string, unknown>): Promise<void>
@@ -62,7 +65,7 @@ interface State {
   setMix(role: Role, patch: Partial<RoleMix>): void
   setSync(mode: SyncMode): void
   setDialog(d: Dialog): void
-  setView(v: 'arranger' | 'live'): void
+  setView(v: 'arranger' | 'chords' | 'live'): void
   setInspector(r: Role | null): void
   setLane(r: Role | null): void
   setConfig(patch: Partial<AppConfig> & { api_key?: string }): Promise<void>
@@ -84,9 +87,10 @@ export const useStore = create<State>((set, get) => ({
   selectedId: null, lane: null, inspector: null, view: 'arranger', dialog: null,
   chat: [], thinking: false, activity: [], toasts: [], saved: true,
   mix: Object.fromEntries(ROLES.map((r) => [r, { mute: false, solo: false, gain: 0.8 }])) as Record<Role, RoleMix>,
-  syncMode: 'free', loop: true, playing: false, reducedMotion: false, uiScale: 100,
+  syncMode: 'free', loop: true, playing: false, reducedMotion: false, uiScale: Number((() => { try { return localStorage.getItem('chordarium.uiScale') } catch { return null } })()) || 100,
 
   async init(injected) {
+    get().setAppearance({ uiScale: get().uiScale })   // re-apply the remembered window size
     clearTimeout(retry); closeWs?.()
     try {
       const api = injected ?? new CoreApi(await getBridge().getCoreConnection())
@@ -156,6 +160,26 @@ export const useStore = create<State>((set, get) => ({
     const ok = await get().guard(() => api.patchSong({ sections }))
     if (ok) await get().refresh()
     return !!ok
+  },
+
+  async transposeBy(semitones) {
+    const { api, snap } = get(); if (!api || !snap?.song) return false
+    const song = snap.song
+    const root = song.key ?? ''
+    const newKey = root ? shiftNote(root, semitones, keyUsesFlats(shiftNote(root, semitones, false), song.mode)) : null
+    const flats = newKey ? keyUsesFlats(newKey, song.mode) : false
+    const sections = structuredClone(song.sections)
+    for (const sec of sections) for (const bar of sec.bars) for (const c of bar.chords) c.symbol = transposeChord(c.symbol, semitones, flats)
+    const ok = await get().guard(() => api.patchSong({ sections, ...(newKey ? { key: newKey } : {}) }))
+    if (ok) await get().refresh()
+    return !!ok
+  },
+
+  async simplifyAll() {
+    const { api, snap } = get(); if (!api || !snap?.song) return
+    const sections = structuredClone(snap.song.sections)
+    for (const sec of sections) for (const bar of sec.bars) for (const c of bar.chords) c.symbol = simplifyChord(c.symbol)
+    if (await get().guard(() => api.patchSong({ sections }))) await get().refresh()
   },
 
   async newSong() {
@@ -255,7 +279,11 @@ export const useStore = create<State>((set, get) => ({
   async testProvider() { const api = get().api; return api ? get().guard(() => api.testProvider()) : undefined },
   setAppearance(p) {
     set((s) => ({ reducedMotion: p.reducedMotion ?? s.reducedMotion, uiScale: p.uiScale ?? s.uiScale }))
-    if (p.uiScale) document.documentElement.style.setProperty('--ui-scale', String(p.uiScale / 100))
+    if (p.uiScale) {
+      document.documentElement.style.setProperty('--ui-scale', String(p.uiScale / 100))
+      ;(document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = String(p.uiScale / 100)
+      try { localStorage.setItem('chordarium.uiScale', String(p.uiScale)) } catch { /* private mode */ }
+    }
   },
 }))
 
