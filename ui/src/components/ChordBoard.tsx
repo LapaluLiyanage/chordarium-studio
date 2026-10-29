@@ -1,8 +1,10 @@
 import { Pause, Play } from 'lucide-react'
 import { useState } from 'react'
+import { useNowPlaying } from '../nowPlaying'
 import { SECTION_COLOR } from '../sections'
 import { useStore } from '../store'
 import { BarCard } from './BarCard'
+import { ChordSymbol } from './ChordSymbol'
 
 const PER_ROW = [2, 4, 8] as const
 
@@ -12,6 +14,8 @@ export function ChordBoard() {
   const song = snap?.song
   const [perRow, setPerRow] = useState<number>(() => { try { return Number(localStorage.getItem('chordarium.perRow')) || 4 } catch { return 4 } })
   const [shift, setShift] = useState(0)
+  const playingSection = song?.sections.find((s) => s.id === selectedId)
+  const now = useNowPlaying(playingSection)   // chord sounding in the selected section while Play runs
   if (!song) return <section className="board"><div className="empty">Paste a chord sheet to begin.<br /><br /><button className="btn primary" onClick={() => setDialog('paste')}>Paste chord sheet</button></div></section>
 
   const choose = (n: number) => { setPerRow(n); try { localStorage.setItem('chordarium.perRow', String(n)) } catch { /* private mode */ } }
@@ -36,6 +40,7 @@ export function ChordBoard() {
           {PER_ROW.map((n) => <button key={n} aria-pressed={perRow === n} onClick={() => choose(n)}>{n} / ROW</button>)}
         </span>
         <button className="btn pill-lg" onClick={() => void simplifyAll()} title="Reduce every chord to its triad">SIMPLIFY</button>
+        {now && <span className="now-chip" role="status" aria-live="off" aria-label={`Now playing ${now.symbol}`}><span>NOW</span><ChordSymbol symbol={now.symbol} /></span>}
       </div>
       {song.sections.map((sec) => {
         const start = first; first += sec.bars.length
@@ -47,7 +52,7 @@ export function ChordBoard() {
               <span className="muted bars-range">BARS {start}–{start + sec.bars.length - 1}</span>
             </div>
             <div className="board-grid" style={{ ['--per-row' as string]: perRow }}>
-              {sec.bars.map((b, bi) => <BarCard key={bi} board sectionId={sec.id} index={bi} bar={b} beatsPerBar={song.time_signature[0]} canDelete={sec.bars.length > 1} flagged={flaggedBars.has(start + bi)} />)}
+              {sec.bars.map((b, bi) => <BarCard key={bi} board sectionId={sec.id} index={bi} bar={b} beatsPerBar={song.time_signature[0]} canDelete={sec.bars.length > 1} flagged={flaggedBars.has(start + bi)} playingSlot={sec.id === selectedId && now?.bar === bi ? now.slot : -1} />)}
             </div>
           </div>
         )

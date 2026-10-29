@@ -87,7 +87,7 @@ export const useStore = create<State>((set, get) => ({
   selectedId: null, lane: null, inspector: null, view: 'arranger', dialog: null,
   chat: [], thinking: false, activity: [], toasts: [], saved: true,
   mix: Object.fromEntries(ROLES.map((r) => [r, { mute: false, solo: false, gain: 0.8 }])) as Record<Role, RoleMix>,
-  syncMode: 'free', loop: true, playing: false, reducedMotion: false, uiScale: Number((() => { try { return localStorage.getItem('chordarium.uiScale') } catch { return null } })()) || 100,
+  syncMode: 'free', loop: true, playing: false, reducedMotion: false, uiScale: Number((() => { try { return localStorage.getItem('chordarium.uiScale.v2') } catch { return null } })()) || 100,
 
   async init(injected) {
     get().setAppearance({ uiScale: get().uiScale })   // re-apply the remembered window size
@@ -282,7 +282,7 @@ export const useStore = create<State>((set, get) => ({
     if (p.uiScale) {
       document.documentElement.style.setProperty('--ui-scale', String(p.uiScale / 100))
       ;(document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = String(p.uiScale / 100)
-      try { localStorage.setItem('chordarium.uiScale', String(p.uiScale)) } catch { /* private mode */ }
+      try { localStorage.setItem('chordarium.uiScale.v2', String(p.uiScale)) } catch { /* private mode */ }
     }
   },
 }))

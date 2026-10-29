@@ -41,16 +41,17 @@ function Cell({ sectionId, bar, slot, symbol }: { sectionId: string; bar: number
  * One bar as a card: its chords share the width by beats, a tick under the card marks each beat,
  * and hover tools split, merge or delete it. `flagged` bars get the dashed outline from the parser's warnings.
  */
-export function BarCard({ sectionId, index, bar, beatsPerBar, canDelete, flagged = false, board = false }: {
+export function BarCard({ sectionId, index, bar, beatsPerBar, canDelete, flagged = false, board = false, playingSlot = -1 }: {
   sectionId: string; index: number; bar: Bar; beatsPerBar: number; canDelete: boolean; flagged?: boolean; board?: boolean
+  playingSlot?: number   // index of the chord sounding right now in this bar, or -1
 }) {
   const editBars = useStore((s) => s.editBars)
   const n = index + 1
   return (
-    <div className={`bar${board ? ' board-bar' : ''}${flagged ? ' flagged' : ''}`} style={{ ['--beats' as string]: beatsPerBar }}>
+    <div className={`bar${board ? ' board-bar' : ''}${flagged ? ' flagged' : ''}${playingSlot >= 0 ? ' now' : ''}`} style={{ ['--beats' as string]: beatsPerBar }}>
       {!board && <span className="num">{n}</span>}
       {bar.chords.map((c, ci) => (
-        <span key={ci} className="slot" style={{ flex: `${c.beats} 1 0` }}>
+        <span key={ci} className={`slot${ci === playingSlot ? ' active' : ''}`} aria-current={ci === playingSlot ? 'true' : undefined} style={{ flex: `${c.beats} 1 0` }}>
           <Cell sectionId={sectionId} bar={index} slot={ci} symbol={c.symbol} />
         </span>
       ))}

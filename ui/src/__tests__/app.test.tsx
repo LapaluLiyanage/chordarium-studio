@@ -168,6 +168,18 @@ describe('App', () => {
       expect(await screen.findByText('TRANSPOSE +1')).toBeInTheDocument()
     })
 
+    it('lights up the bar and chord that is playing, and shows it in the toolbar', async () => {
+      const { patchSong } = await setup()
+      expect(patchSong).not.toHaveBeenCalled()
+      expect(document.querySelector('.bar.now')).toBeNull()   // nothing is lit before Play
+      await userEvent.click(screen.getByRole('button', { name: 'Play selected section' }))
+      await waitFor(() => expect(document.querySelector('.bar.now')).not.toBeNull())
+      expect(document.querySelector('.bar.now .slot.active')).not.toBeNull()
+      expect(await screen.findByRole('status', { name: /Now playing G/ })).toBeInTheDocument()   // first beat of the section: G
+      await userEvent.click(screen.getAllByRole('button', { name: 'Stop preview' })[0])   // the board and the bottom bar both have one
+      await waitFor(() => expect(document.querySelector('.bar.now')).toBeNull())
+    })
+
     it('simplifies chords to triads', async () => {
       const complex = () => ({ ...snap(), song: { ...snap().song!, sections: [{ id: 's1', name: 'Chorus 1', kind: 'chorus' as const, lyrics: null, bars: [{ chords: [{ symbol: 'Gmaj7/B', beats: 4 }] }, { chords: [{ symbol: 'Em7', beats: 4 }] }] }] } })
       const { patchSong, sent } = await setup({ snapshot: async () => complex() })
@@ -183,7 +195,7 @@ describe('App', () => {
     const before = useStore.getState().uiScale
     await userEvent.click(await screen.findByRole('button', { name: 'Make everything larger' }))
     expect(useStore.getState().uiScale).toBe(before + 10)
-    expect(localStorage.getItem('chordarium.uiScale')).toBe(String(before + 10))
+    expect(localStorage.getItem('chordarium.uiScale.v2')).toBe(String(before + 10))
     await userEvent.click(screen.getByRole('button', { name: /Size \d+ percent/ }))
     expect(useStore.getState().uiScale).toBe(100)
   })

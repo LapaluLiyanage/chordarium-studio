@@ -115,3 +115,10 @@ input.vol:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; 
   background-image: linear-gradient(to right, transparent calc(100% - 1px), var(--text-muted) 0); background-size: calc(100% / var(--beats, 4)) 100%; background-repeat: repeat-x; }
 .bar.flagged { outline: 2px dashed var(--brand); outline-offset: -2px; }
 .bar .flag { position: absolute; top: 3px; right: 22px; color: var(--brand); font-size: .7em; font-weight: 800; }
+
+/* Live playing chord: the sounding bar is outlined, its chord is lit, and the toolbar shows it large. */
+.bar.now { outline: 2px solid var(--brand); outline-offset: -2px; background: color-mix(in srgb, var(--brand) 14%, var(--surface-2)); }
+.bar .slot.active { background: color-mix(in srgb, var(--brand) 26%, transparent); border-radius: 8px; }
+.bar .slot.active .cs { color: var(--text); }
+.now-chip { display: inline-flex; align-items: center; gap: 10px; padding: 4px 16px; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font-family: var(--font-chord); font-size: 1.5em; line-height: 1.2; }
+.now-chip > span:first-child { font-family: var(--font-ui); font-size: .5em; font-weight: 800; letter-spacing: .12em; opacity: .75; }
