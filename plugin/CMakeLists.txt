@@ -30,6 +30,14 @@ target_link_libraries(ChordariumStudio PRIVATE
     juce::juce_audio_utils juce::juce_gui_extra juce::juce_audio_processors
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
+# Embed the built UI (ui/dist) so the editor needs no dev server. Run `pnpm build` in ui/ first.
+file(GLOB_RECURSE CHORDARIUM_UI_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../ui/dist/*")
+if(CHORDARIUM_UI_FILES)
+    juce_add_binary_data(ChordariumUI SOURCES ${CHORDARIUM_UI_FILES})
+    target_link_libraries(ChordariumStudio PRIVATE ChordariumUI)
+    target_compile_definitions(ChordariumStudio PUBLIC CHORDARIUM_EMBED_UI=1)
+endif()
+
 # Pure logic tests (no JUCE needed): tick<->PPQ and note scheduling.
 add_executable(playback_tests Tests/playback_tests.cpp Source/Playback.cpp)
 target_include_directories(playback_tests PRIVATE Source)

@@ -1,5 +1,8 @@
 #include "PluginEditor.h"
 #include "CoreConnection.h"
+#ifdef CHORDARIUM_EMBED_UI
+#include <BinaryData.h>
+#endif
 
 ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEditor(&p), proc_(p) {
     CoreConnection::startCoreIfNeeded();
@@ -37,6 +40,22 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
         .withNativeFunction("reportDragRects", [](const juce::Array<juce::var>&, juce::WebBrowserComponent::NativeFunctionCompletion done) {
             done({});   // [TODO M4] position native drag-handle overlays; MidiDrag.* + performExternalDragDropOfFiles (spike S3)
         })
+#ifdef CHORDARIUM_EMBED_UI
+        .withResourceProvider([](const juce::String& url) -> std::optional<juce::WebBrowserComponent::Resource> {
+            auto name = url == "/" ? juce::String("index.html") : url.fromLastOccurrenceOf("/", false, false).upToFirstOccurrenceOf("?", false, false);
+            for (int i = 0; i < BinaryData::namedResourceListSize; ++i) {
+                if (juce::String(BinaryData::originalFilenames[i]) != name) continue;
+                int size = 0;
+                auto* data = BinaryData::getNamedResource(BinaryData::namedResourceList[i], size);
+                auto ext = name.fromLastOccurrenceOf(".", false, false).toLowerCase();
+                const char* mime = ext == "html" ? "text/html" : ext == "js" ? "text/javascript" : ext == "css" ? "text/css"
+                                 : ext == "svg" ? "image/svg+xml" : ext == "png" ? "image/png" : ext == "woff2" ? "font/woff2" : "application/octet-stream";
+                auto* bytes = reinterpret_cast<const std::byte*>(data);
+                return juce::WebBrowserComponent::Resource { std::vector<std::byte>(bytes, bytes + size), mime };
+            }
+            return std::nullopt;
+        })
+#endif
         .withNativeFunction("previewStop", [this](const juce::Array<juce::var>&, juce::WebBrowserComponent::NativeFunctionCompletion done) {
             proc_.previewStop(); done({});
         });
