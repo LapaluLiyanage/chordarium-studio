@@ -31,7 +31,7 @@ function fakeApi(over: Record<string, unknown> = {}) {
   } as unknown as CoreApi
 }
 
-beforeEach(() => { localStorage.setItem('chordarium.setupDone', '1'); setBridge(createMockBridge()); useStore.setState({ snap: null, dialog: null, chat: [], toasts: [], view: 'arranger', playing: false }) })
+beforeEach(() => { localStorage.setItem('chordarium.setupDone', '1'); setBridge(createMockBridge()); useStore.setState({ snap: null, dialog: null, chat: [], toasts: [], view: 'arranger', playing: false, builtInSound: true }) })
 
 describe('App', () => {
   it('shows the empty state when there is no song', async () => {
@@ -237,6 +237,25 @@ describe('App', () => {
     fireEvent.pointerDown(all, { button: 0, clientX: 5, clientY: 5 })
     fireEvent.pointerMove(window, { buttons: 1, clientX: 40, clientY: 40 })
     expect(startFileDrag).toHaveBeenCalledWith('section:s1')
+  })
+
+  it('mutes and unmutes the built-in preview sound', async () => {
+    const setBuiltInSound = vi.fn()
+    setBridge({ ...createMockBridge(), setBuiltInSound })
+    await useStore.getState().init(fakeApi())
+    render(<App />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Mute built-in sound' }))
+    expect(setBuiltInSound).toHaveBeenLastCalledWith(false)
+    expect(await screen.findByRole('button', { name: 'Unmute built-in sound' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Unmute built-in sound' }))
+    expect(setBuiltInSound).toHaveBeenLastCalledWith(true)
+  })
+
+  it('takes the remembered mute state from the plugin when the UI opens', async () => {
+    setBridge({ ...createMockBridge(), getHostInfo: async () => ({ host: 'Cubase', sampleRate: 44100, bpm: 120, builtInSound: false }) })
+    await useStore.getState().init(fakeApi())
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Unmute built-in sound' })).toBeInTheDocument()
   })
 
   it('shows an error toast when the core rejects a chord', async () => {

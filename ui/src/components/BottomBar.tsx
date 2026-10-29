@@ -1,10 +1,10 @@
-import { Download, Pause, Play, Repeat } from 'lucide-react'
+import { Download, Pause, Play, Repeat, Volume2, VolumeX } from 'lucide-react'
 import { partsFor, useStore } from '../store'
 import { ROLES } from '../types'
 import { ROLE_LABEL } from '../sections'
 
 export function BottomBar() {
-  const { snap, selectedId, playing, play, stop, loop, setLoop, mix, setMix, syncMode, setSync, exportMidi, transport } = useStore()
+  const { snap, selectedId, playing, play, stop, loop, setLoop, builtInSound, setBuiltInSound, mix, setMix, syncMode, setSync, exportMidi, transport } = useStore()
   const has = partsFor(snap, selectedId).length > 0
   return (
     <footer className="bottom">
@@ -12,6 +12,10 @@ export function BottomBar() {
         {playing ? <Pause size={16} /> : <Play size={16} />}
       </button>
       <button className="icon-btn" aria-pressed={loop} aria-label="Loop" onClick={() => setLoop(!loop)}><Repeat size={16} color={loop ? 'var(--brand)' : undefined} /></button>
+      <button className="btn" aria-pressed={!builtInSound} aria-label={builtInSound ? 'Mute built-in sound' : 'Unmute built-in sound'}
+        title={builtInSound ? 'Mute the plugin\'s built-in preview sound (MIDI still plays out to your instruments)' : 'Built-in sound is muted. Click to hear it again'} onClick={() => setBuiltInSound(!builtInSound)}>
+        {builtInSound ? <Volume2 size={16} /> : <VolumeX size={16} />} {builtInSound ? 'Preview sound' : 'Muted'}
+      </button>
       <select className="field" aria-label="Sync mode" value={syncMode} onChange={(e) => setSync(e.target.value as 'host' | 'free')}>
         <option value="free">Free (own clock)</option><option value="host">Follow Cubase</option>
       </select>

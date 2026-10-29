@@ -27,6 +27,7 @@ export function createMockBridge(now: () => number = () => performance.now()): B
     },
     previewStop() { playing = false; stopMeters() },
     setLoop(on) { loop = on },
+    setBuiltInSound(_on: boolean) {},
     setRoleMix(role, m) { mix[role] = m },
     setSyncMode(_m: SyncMode) {},
     reportDragRects(_r: DragRect[]) {},

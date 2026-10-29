@@ -32,6 +32,8 @@ public:
     void previewStop() { playing_ = false; panic_ = true; }
     void setSyncHost(bool host) { syncHost_ = host; }
     void setLoop(bool on) { loop_ = on; }
+    void setBuiltInSound(bool on) { builtIn_ = on; }   // false: the preview synth is silent, MIDI still goes out
+    bool builtInSound() const { return builtIn_.load(); }
     // Per-role mix (0 piano,1 bass,2 pad,3 drums). Mute/solo are applied by dropping events in processBlock.
     void setRoleMix(int role, bool mute, bool solo, float gain) { mute_[role] = mute; solo_[role] = solo; gain_[role] = gain; }
     bool takeNeedsRestore() { bool r = needsRestore_; needsRestore_ = false; return r; }
@@ -42,6 +44,7 @@ public:
     double hostBpm() const { return lastBpm_.load(); }
 private:
     double sampleRate_ = 44100, freeBpm_ = 90, freeQ_ = 0;
+    std::atomic<bool> builtIn_ { true };
     std::atomic<bool> playing_ { false }, syncHost_ { false }, loop_ { true };
     std::atomic<bool> mute_[4] {}, solo_[4] {};
     std::atomic<float> gain_[4] { 0.8f, 0.8f, 0.8f, 0.8f };

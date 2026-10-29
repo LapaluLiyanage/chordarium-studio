@@ -5,7 +5,7 @@ import { createMockBridge } from './mock'
 
 export interface Position { playing: boolean; quarters: number; bpm: number }
 export interface DragRect { partId: string; x: number; y: number; w: number; h: number }
-export interface HostInfo { host: string; sampleRate: number; bpm: number; webview2?: boolean }
+export interface HostInfo { host: string; sampleRate: number; bpm: number; webview2?: boolean; builtInSound?: boolean }
 export type SyncMode = 'host' | 'free'
 export interface RoleMix { mute: boolean; solo: boolean; gain: number }
 
@@ -16,6 +16,8 @@ export interface Bridge {
   previewPlay(sectionId: string, lengthQuarters: number, bpm: number): void
   previewStop(): void
   setLoop(on: boolean): void
+  /** Turn the plugin's built-in preview sound on or off. MIDI output is unaffected. */
+  setBuiltInSound(on: boolean): void
   setRoleMix(role: Role, mix: RoleMix): void
   setSyncMode(mode: SyncMode): void
   reportDragRects(rects: DragRect[]): void

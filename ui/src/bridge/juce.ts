@@ -37,6 +37,7 @@ export function createJuceBridge(): Bridge {
     previewPlay: (s, q, bpm) => void fn('previewPlay')(s, q, bpm),
     previewStop: () => void fn('previewStop')(),
     setLoop: (on) => void fn('setLoop')(on),
+    setBuiltInSound: (on: boolean) => void fn('setBuiltInSound')(on),
     setRoleMix: (r: Role, m: RoleMix) => void fn('setRoleMix')(r, m),
     setSyncMode: (m: SyncMode) => void fn('setSyncMode')(m),
     reportDragRects: (r: DragRect[]) => void fn('reportDragRects')(r),

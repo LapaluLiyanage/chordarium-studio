@@ -53,6 +53,9 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
             proc_.setNotes(std::move(notes), int64_t(lengthQ * chordarium::kPPQ));
             proc_.previewPlay(bpm); done({});
         })
+        .withNativeFunction("setBuiltInSound", [this](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
+            proc_.setBuiltInSound(a.size() > 0 && bool(a[0])); done({});
+        })
         .withNativeFunction("setLoop", [this](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {
             proc_.setLoop(a.size() > 0 && bool(a[0])); done({});
         })
@@ -69,6 +72,7 @@ ChordariumEditor::ChordariumEditor(ChordariumProcessor& p) : AudioProcessorEdito
             o->setProperty("host", juce::PluginHostType().getHostDescription());
             o->setProperty("sampleRate", proc_.getSampleRate());
             o->setProperty("bpm", proc_.hostBpm());
+            o->setProperty("builtInSound", proc_.builtInSound());
             done(juce::var(o));
         })
         .withNativeFunction("reportDragRects", [](const juce::Array<juce::var>& a, juce::WebBrowserComponent::NativeFunctionCompletion done) {

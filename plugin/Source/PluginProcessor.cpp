@@ -31,17 +31,19 @@ void ChordariumProcessor::processBlock(juce::AudioBuffer<float>& audio, juce::Mi
     const int n = audio.getNumSamples();
     float* left = audio.getWritePointer(0);
     float* right = audio.getNumChannels() > 1 ? audio.getWritePointer(1) : left;
+    const bool soundOn = builtIn_.load();
+    if (!soundOn) synth_.allOff();   // let nothing ring on after muting
     int cursor = 0;
     for (auto& e : scratch_) {
         if (!audible(e.channel)) continue;
         e.velocity = juce::jlimit(1, 127, int(e.velocity * gain_[roleOfChannel(e.channel)].load() / 0.8f));
         const int at = juce::jlimit(0, n - 1, e.sampleOffset);
-        if (at > cursor) { synth_.render(left + cursor, right + cursor, at - cursor); cursor = at; }   // built-in preview sound
-        if (e.on) synth_.noteOn(e.channel, e.pitch, e.velocity); else synth_.noteOff(e.channel, e.pitch);
+        if (at > cursor) { if (soundOn) synth_.render(left + cursor, right + cursor, at - cursor); cursor = at; }   // built-in preview sound
+        if (soundOn) { if (e.on) synth_.noteOn(e.channel, e.pitch, e.velocity); else synth_.noteOff(e.channel, e.pitch); }
         auto m = e.on ? juce::MidiMessage::noteOn(e.channel, e.pitch, (juce::uint8) e.velocity) : juce::MidiMessage::noteOff(e.channel, e.pitch);
         midi.addEvent(m, at);
     }
-    if (cursor < n) synth_.render(left + cursor, right + cursor, n - cursor);
+    if (cursor < n && soundOn) synth_.render(left + cursor, right + cursor, n - cursor);
 }
 
 void ChordariumProcessor::getStateInformation(juce::MemoryBlock& dest) {
@@ -54,6 +56,7 @@ void ChordariumProcessor::getStateInformation(juce::MemoryBlock& dest) {
     o->setProperty("snapshot", snapshot_);
     o->setProperty("syncHost", syncHost_.load());
     o->setProperty("loop", loop_.load());
+    o->setProperty("builtInSound", builtIn_.load());
     juce::Array<juce::var> mix;
     for (int r = 0; r < 4; ++r) {
         auto* m = new juce::DynamicObject();
@@ -72,6 +75,7 @@ void ChordariumProcessor::setStateInformation(const void* data, int size) {
     if (v.hasProperty("snapshot")) snapshot_ = v["snapshot"].toString();   // editor re-sends it to core on open
     if (v.hasProperty("syncHost")) syncHost_ = bool(v["syncHost"]);
     if (v.hasProperty("loop")) loop_ = bool(v["loop"]);
+    if (v.hasProperty("builtInSound")) builtIn_ = bool(v["builtInSound"]);
     if (auto* mix = v["mix"].getArray())
         for (int r = 0; r < juce::jmin(4, mix->size()); ++r)
             setRoleMix(r, bool((*mix)[r]["mute"]), bool((*mix)[r]["solo"]), float(double((*mix)[r]["gain"])));

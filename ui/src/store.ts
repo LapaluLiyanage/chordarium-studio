@@ -31,6 +31,7 @@ interface State {
   mix: Record<Role, RoleMix>
   syncMode: SyncMode
   loop: boolean
+  builtInSound: boolean
   playing: boolean
   saved: boolean
   reducedMotion: boolean
@@ -62,6 +63,7 @@ interface State {
   play(): void
   stop(): void
   setLoop(on: boolean): void
+  setBuiltInSound(on: boolean): void
   setMix(role: Role, patch: Partial<RoleMix>): void
   setSync(mode: SyncMode): void
   setDialog(d: Dialog): void
@@ -87,10 +89,11 @@ export const useStore = create<State>((set, get) => ({
   selectedId: null, lane: null, inspector: null, view: 'arranger', dialog: null,
   chat: [], thinking: false, activity: [], toasts: [], saved: true,
   mix: Object.fromEntries(ROLES.map((r) => [r, { mute: false, solo: false, gain: 0.8 }])) as Record<Role, RoleMix>,
-  syncMode: 'free', loop: true, playing: false, reducedMotion: false, uiScale: Number((() => { try { return localStorage.getItem('chordarium.uiScale.v2') } catch { return null } })()) || 100,
+  syncMode: 'free', loop: true, builtInSound: true, playing: false, reducedMotion: false, uiScale: Number((() => { try { return localStorage.getItem('chordarium.uiScale.v2') } catch { return null } })()) || 100,
 
   async init(injected) {
     get().setAppearance({ uiScale: get().uiScale })   // re-apply the remembered window size
+    void getBridge().getHostInfo().then((h) => { if (typeof h.builtInSound === 'boolean') set({ builtInSound: h.builtInSound }) }).catch(() => {})   // the plugin remembers this per project
     clearTimeout(retry); closeWs?.()
     try {
       const api = injected ?? new CoreApi(await getBridge().getCoreConnection())
@@ -262,6 +265,7 @@ export const useStore = create<State>((set, get) => ({
   },
   stop() { getBridge().previewStop(); set({ playing: false }) },
   setLoop(on) { getBridge().setLoop(on); set({ loop: on }) },
+  setBuiltInSound(on) { getBridge().setBuiltInSound(on); set({ builtInSound: on }) },
   setMix(role, patch) {
     const m = { ...get().mix[role], ...patch }; getBridge().setRoleMix(role, m)
     set((s) => ({ mix: { ...s.mix, [role]: m } }))
